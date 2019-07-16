@@ -1,22 +1,51 @@
 const express = require('express')
 const dotenv = require('dotenv')
-const Sentry = require('@sentry/node');
+const Sentry = require('@sentry/node')
+const Mongo = require('mongodb')
+const MongoClient = require('mongodb').MongoClient
+const assert = require('assert')
+var expressMongoDb = require('express-mongo-db')
 
 const app = express()
 
 const port = 1406
 dotenv.config()
 
+// MongoDB Setup
+
+const dbURL = process.env.dbURL
+const dbName = 'vapasContent'
+const dbClient = new MongoClient(dbURL)
+
+app.use(expressMongoDb(dbURL))
+
+const findDocuments = function(db, callback) {
+  var dbObject = db.db(dbName)
+  const collection = dbObject.collection('vapasContent')
+  collection.find({'_id' : Mongo.ObjectId('5d2e29d2caa41164b9ff49c2')}).toArray(function(err, docs) {
+    assert.equal(err, null)
+    callback(docs)
+  })
+}
+
+// Sentry setup
+
 Sentry.init({ dsn: process.env.SENTRYDSN });
 
 app.use(Sentry.Handlers.requestHandler());
+
+// Express Routing
 
 app.get('/', function mainHandler(req, res) {
   res.send('200')
 })
 
 app.get('/sileo-featured.json', function mainHandler(req, res) {
-  res.send('')
+  res.send(
+    findDocuments(req.db, function() {
+      dbClient.close()
+    })
+  )
 })
 
 app.get('/Packages', function mainHandler(req, res) {

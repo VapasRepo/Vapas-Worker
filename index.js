@@ -41,11 +41,10 @@ app.get('/', function mainHandler(req, res) {
 })
 
 app.get('/sileo-featured.json', function mainHandler(req, res) {
-  res.send(
-    findDocuments(req.db, function() {
-      dbClient.close()
-    })
-  )
+  findDocuments(req.db, function(docs) {
+    res.send(docs[0].featured)
+    dbClient.close()
+  })
 })
 
 app.get('/Packages', function mainHandler(req, res) {

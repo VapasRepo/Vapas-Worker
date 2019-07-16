@@ -1,18 +1,29 @@
 const express = require('express')
 const dotenv = require('dotenv')
+const Sentry = require('@sentry/node');
 
 const app = express()
 
 const port = 1406
 dotenv.config()
 
-app.get('/', (req, res) => res.send('200'))
+Sentry.init({ dsn: process.env.SENTRYDSN });
 
-app.get('/sileo-featured.json', (req, res) => res.send(''))
+app.use(Sentry.Handlers.requestHandler());
 
-app.get('/Packages', (req, res) => res.send(''))
+app.get('/', function mainHandler(req, res) {
+  res.send('200')
+})
 
-app.get('/Release', function (req, res) {
+app.get('/sileo-featured.json', function mainHandler(req, res) {
+  res.send('')
+})
+
+app.get('/Packages', function mainHandler(req, res) {
+  res.send('')
+})
+
+app.get('/Release', function mainHandler(req, res) {
   res.write("Origin: Vapas \n")
   res.write("Label: Vapas \n")
   res.write("Suite: stable \n")
@@ -24,11 +35,18 @@ app.get('/Release', function (req, res) {
   res.end()
 })
 
-app.get('/payment/info', (req, res) => res.send('{"name": "Vapas", "icon": "' + process.env.URL +'/CydiaIcon.png", "description": "Vapas Payment"}'))
+app.get('/payment/info', function mainHandler(req, res) {
+  res.send('{"name": "Vapas", "icon": "' + process.env.URL +'/CydiaIcon.png", "description": "Vapas Payment"}')
+})
 
+app.get('/payment_endpoint', function mainHandler(req, res) {
+  res.send(process.env.URL + '/payment/')
+})
 
-app.get('/payment_endpoint', (req, res) => res.send(process.env.URL + '/payment/'))
+app.get('/CydiaIcon.png', function mainHandler(req, res) {
+  res.sendFile('./icon.png', {root:'./'}) 
+})
 
-app.get('/CydiaIcon.png', (req, res) => res.sendFile('./icon.png', {root:'./'}))
+app.use(Sentry.Handlers.errorHandler());
 
 app.listen(port, () => console.log(`Listening on port ${port}`))

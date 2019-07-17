@@ -44,23 +44,22 @@ app.get('/sileo-featured.json', function mainHandler(req, res) {
   findDocuments(req.db, 'vapasInfomation', function(docs) {
     res.send(docs[0].featured)
     dbClient.close()
+    res.end()
   })
 })
 
 app.get('/Packages', function mainHandler(req, res) {
-  res.send('')
+  res.end()
 })
 
 app.get('/Release', function mainHandler(req, res) {
-  res.write("Origin: Vapas \n")
-  res.write("Label: Vapas \n")
-  res.write("Suite: stable \n")
-  res.write("Version: 1.0 \n")
-  res.write("Codename: ios \n")
-  res.write("Architectures: iphoneos-arm \n")
-  res.write("Components: main \n")
-  res.write("Description: Vapas Repo Development")
-  res.end()
+  findDocuments(req.db, 'vapasInfomation', function(docs) {
+    for (i in docs[1].Release) {
+      res.write(i + ': ' + docs[1].Release[i] + '\n')
+    }
+    dbClient.close()
+    res.end()
+  })
 })
 
 app.get('/payment/info', function mainHandler(req, res) {

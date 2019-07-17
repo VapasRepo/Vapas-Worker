@@ -4,7 +4,8 @@ const Sentry = require('@sentry/node')
 const Mongo = require('mongodb')
 const MongoClient = require('mongodb').MongoClient
 const assert = require('assert')
-var expressMongoDb = require('express-mongo-db')
+const compression = require('compression')
+const expressMongoDb = require('express-mongo-db')
 
 const app = express()
 
@@ -40,6 +41,12 @@ app.get('/', function mainHandler(req, res) {
   res.send('200')
 })
 
+// For some odd reason, older cyida versions navigate with (url)/./(path)
+app.get('/./*', function mainHandler(req, res) {
+  res.redirect(301, req.originalUrl.substring(2))
+})
+
+
 app.get('/sileo-featured.json', function mainHandler(req, res) {
   findDocuments(req.db, 'vapasInfomation', function(docs) {
     res.send(docs[0].featured)
@@ -49,6 +56,19 @@ app.get('/sileo-featured.json', function mainHandler(req, res) {
 })
 
 app.get('/Packages', function mainHandler(req, res) {
+  findDocuments(req.db, 'vapasContent', function(docs) {
+    for (x in docs[0].Packages) {
+      for (i in docs[0].Packages[x]) {
+        res.write(i + ': ' + docs[0].Packages[x][i] + '\n')
+      }
+      res.write('\n')
+    }
+    dbClient.close()
+    res.end()
+  })
+})
+
+app.get('/Packages.gz', compression(), function mainHandler(req, res) {
   findDocuments(req.db, 'vapasContent', function(docs) {
     for (x in docs[0].Packages) {
       for (i in docs[0].Packages[x]) {

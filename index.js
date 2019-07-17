@@ -19,10 +19,10 @@ const dbClient = new MongoClient(dbURL)
 
 app.use(expressMongoDb(dbURL))
 
-const findDocuments = function(db, callback) {
+const findDocuments = function(db, collectionName, callback) {
   var dbObject = db.db(dbName)
-  const collection = dbObject.collection('vapasContent')
-  collection.find({'_id' : Mongo.ObjectId('5d2e29d2caa41164b9ff49c2')}).toArray(function(err, docs) {
+  const collection = dbObject.collection(collectionName)
+  collection.find({}).toArray(function(err, docs) {
     assert.equal(err, null)
     callback(docs)
   })
@@ -41,7 +41,7 @@ app.get('/', function mainHandler(req, res) {
 })
 
 app.get('/sileo-featured.json', function mainHandler(req, res) {
-  findDocuments(req.db, function(docs) {
+  findDocuments(req.db, 'vapasInfomation', function(docs) {
     res.send(docs[0].featured)
     dbClient.close()
   })

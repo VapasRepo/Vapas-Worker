@@ -43,9 +43,11 @@ app.get('/', function mainHandler(req, res) {
 
 // For some odd reason, older cyida versions navigate with (url)/./(path)
 app.get('/./*', function mainHandler(req, res) {
-  res.redirect(301, req.originalUrl.substring(2))
+  res.set('location', req.originalUrl.substring(2));
+  res.status(301).send()
 })
 
+//Core repo infomation
 
 app.get('/sileo-featured.json', function mainHandler(req, res) {
   findDocuments(req.db, 'vapasInfomation', function(docs) {
@@ -101,6 +103,16 @@ app.get('/payment_endpoint', function mainHandler(req, res) {
 
 app.get('/CydiaIcon.png', function mainHandler(req, res) {
   res.sendFile('./icon.png', {root:'./'}) 
+})
+
+
+// Packge content
+
+app.get('/depiction/*', function mainHandler(req, res) {
+})
+
+app.get('/sileodepiction/*', function mainHandler(req, res) {
+  console.log("h")
 })
 
 app.use(Sentry.Handlers.errorHandler());

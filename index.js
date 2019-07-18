@@ -111,8 +111,20 @@ app.get('/CydiaIcon.png', function mainHandler(req, res) {
 app.get('/depiction/*', function mainHandler(req, res) {
 })
 
+// oh god oh fuck
 app.get('/sileodepiction/*', function mainHandler(req, res) {
-  console.log("h")
+  findDocuments(req.db, 'vapasContent', function(docs) {
+    packageData = docs[1].packageData[req.url.substring(16)]
+    var knownIssues = ""
+    for (i in packageData.knownIssues) {
+      knownIssues += '* ' + packageData.knownIssues[i] + '\\n'
+    }
+    sileoData = `{ "minVersion":"0.1", "headerImage":"` + packageData.headerImage + `", "tintColor": "` + packageData.tint + `", "tabs": [ { "tabname": "Details", "views": [ { "title": "` + packageData.shortDescription + `", "useBoldText": true, "useBottomMargin": false, "class": "DepictionSubheaderView" }, { "itemCornerRadius": 6, "itemSize": "{160, 275.41333333333336}", "screenshots": [ { "accessibilityText": "Screenshot", "url": "` + packageData.screenshots[0] + `", "fullSizeURL": "` + packageData.screenshots[0] + `" } ], "class": "DepictionScreenshotView" }, { "markdown": "` + packageData.longDescription + `", "useSpacing": true, "class": "DepictionMarkdownView" }, { "class": "DepictionSeparatorView" }, { "title": "Known Issues", "class": "DepictionHeaderView" }, { "markdown": "` + knownIssues + `", "useSpacing": true, "class": "DepictionMarkdownView" }, { "class": "DepictionSeparatorView" }, { "title": "Version", "text": "` + packageData.currentVersion.versionNumber + `", "class": "DepictionTableTextView" } ], "class": "DepictionStackView" } ], "class": "DepictionTabView" }`
+    console.log(sileoData)
+    res.send(JSON.parse(sileoData))
+    dbClient.close()
+    res.end()
+  })
 })
 
 app.use(Sentry.Handlers.errorHandler());

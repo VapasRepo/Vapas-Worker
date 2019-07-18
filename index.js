@@ -6,6 +6,8 @@ const MongoClient = require('mongodb').MongoClient
 const assert = require('assert')
 const compression = require('compression')
 const expressMongoDb = require('express-mongo-db')
+const moment = require('moment')
+const path = require('path')
 
 const app = express()
 
@@ -37,9 +39,7 @@ app.use(Sentry.Handlers.requestHandler());
 
 // Express Routing
 
-app.get('/', function mainHandler(req, res) {
-  res.send('200')
-})
+app.use('/', express.static(path.join(__dirname, 'webDepictions')))
 
 // For some odd reason, older cyida versions navigate with (url)/./(path)
 app.get('/./*', function mainHandler(req, res) {
@@ -102,9 +102,20 @@ app.get('/payment_endpoint', function mainHandler(req, res) {
 })
 
 app.get('/CydiaIcon.png', function mainHandler(req, res) {
-  res.sendFile('./icon.png', {root:'./'}) 
+  res.sendFile('./cyidaIcon.png', {root:'./'})
 })
 
+app.get('/footerIcon.png', function mainHandler(req, res) {
+  res.sendFile('./footerIcon.png', {root:'./'})
+})
+
+
+// Open package manager when someone clicks "Add to package manager"
+
+app.get('/cyidaRedirect', function mainHandler(req, res) {
+  res.set('location','cydia://url/https://cydia.saurik.com/api/share#?' + process.env.URL);
+  res.status(302).send()
+})
 
 // Packge content
 
@@ -116,10 +127,14 @@ app.get('/sileodepiction/*', function mainHandler(req, res) {
   findDocuments(req.db, 'vapasContent', function(docs) {
     packageData = docs[1].packageData[req.url.substring(16)]
     var knownIssues = ""
+    var packagePrice = packageData.price.toString()
+    if (packagePrice == "0") {
+      var packagePrice = "Free"
+    }
     for (i in packageData.knownIssues) {
       knownIssues += '* ' + packageData.knownIssues[i] + '\\n'
     }
-    sileoData = `{ "minVersion":"0.1", "headerImage":"` + packageData.headerImage + `", "tintColor": "` + packageData.tint + `", "tabs": [ { "tabname": "Details", "views": [ { "title": "` + packageData.shortDescription + `", "useBoldText": true, "useBottomMargin": false, "class": "DepictionSubheaderView" }, { "itemCornerRadius": 6, "itemSize": "{160, 275.41333333333336}", "screenshots": [ { "accessibilityText": "Screenshot", "url": "` + packageData.screenshots[0] + `", "fullSizeURL": "` + packageData.screenshots[0] + `" } ], "class": "DepictionScreenshotView" }, { "markdown": "` + packageData.longDescription + `", "useSpacing": true, "class": "DepictionMarkdownView" }, { "class": "DepictionSeparatorView" }, { "title": "Known Issues", "class": "DepictionHeaderView" }, { "markdown": "` + knownIssues + `", "useSpacing": true, "class": "DepictionMarkdownView" }, { "class": "DepictionSeparatorView" }, { "title": "Version", "text": "` + packageData.currentVersion.versionNumber + `", "class": "DepictionTableTextView" } ], "class": "DepictionStackView" } ], "class": "DepictionTabView" }`
+    sileoData = `{ "minVersion":"0.1", "headerImage":"` + packageData.headerImage + `", "tintColor": "` + packageData.tint + `", "tabs": [ { "tabname": "Details", "views": [ { "title": "` + packageData.shortDescription + `", "useBoldText": true, "useBottomMargin": false, "class": "DepictionSubheaderView" }, { "itemCornerRadius": 6, "itemSize": "{160, 275.41333333333336}", "screenshots": [ { "accessibilityText": "Screenshot", "url": "` + packageData.screenshots[0] + `", "fullSizeURL": "` + packageData.screenshots[0] + `" } ], "class": "DepictionScreenshotView" }, { "markdown": "` + packageData.longDescription + `", "useSpacing": true, "class": "DepictionMarkdownView" }, { "class": "DepictionSeparatorView" }, { "title": "Known Issues", "class": "DepictionHeaderView" }, { "markdown": "` + knownIssues + `", "useSpacing": true, "class": "DepictionMarkdownView" }, { "class": "DepictionSeparatorView" }, { "title": "Package Information", "class": "DepictionHeaderView" }, { "title": "Version", "text": "` + packageData.currentVersion.versionNumber + `", "class": "DepictionTableTextView" }, { "title": "Released", "text": "` + moment(packageData.currentVersion.dateReleased).format('MMMM Do YYYY') + `", "class": "DepictionTableTextView" }, { "title": "Price", "text": "` + packagePrice + `", "class": "DepictionTableTextView" }, { "class": "DepictionSeparatorView" }, { "title": "Developer Infomation", "class": "DepictionHeaderView" },{ "class": "DepictionStackView" }, { "title": "Developer", "text": "` + packageData.developer + `", "class": "DepictionTableTextView" }, { "title": "Support (` + packageData.supportLink.name + `)", "action": "` + packageData.supportLink.url + `", "class": "DepictionTableButtonView" }, { "class": "DepictionSeparatorView" }, { "spacing": 10, "class": "DepictionSpacerView" }, {"URL": "` +process.env.URL + `/footerIcon.png", "width": 125, "height": 67.5, "cornerRadius": 0, "alignment": 1, "class": "DepictionImageView" } ], "class": "DepictionStackView" }], "class": "DepictionTabView" }`
     console.log(sileoData)
     res.send(JSON.parse(sileoData))
     dbClient.close()

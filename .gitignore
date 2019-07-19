@@ -87,3 +87,8 @@ typings/
 # DynamoDB Local files
 .dynamodb/
 
+# Ignore deb folder for testing
+debs/
+
+# Ignore GNOME Builder config
+.buildconfig

@@ -10,4 +10,4 @@ In order to run the worker, you'll first need to create a `.env` file that conta
 2. A `SENTRYDSN` variable used for [Sentry](https://sentry.io/) error reporting.
 3. A `dbURL` variable that points to a MongoDB database.  
 
-After that, just run `yarn install` and then `node index.js`
+After that, just run `yarn install` and then `yarn start`!

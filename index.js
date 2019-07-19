@@ -8,6 +8,7 @@ const compression = require('compression')
 const expressMongoDb = require('express-mongo-db')
 const moment = require('moment')
 const path = require('path')
+const bodyParser = require('body-parser');
 
 const app = express()
 
@@ -20,7 +21,19 @@ const dbURL = process.env.dbURL
 const dbName = 'vapasContent'
 const dbClient = new MongoClient(dbURL)
 
+// Load express middleware
+
 app.use(expressMongoDb(dbURL))
+
+app.use(bodyParser.json())
+
+app.use(bodyParser.urlencoded({ extended: true }))
+
+// Sentry setup
+
+Sentry.init({ dsn: process.env.SENTRYDSN });
+
+app.use(Sentry.Handlers.requestHandler());
 
 const findDocuments = function(db, collectionName, callback) {
   var dbObject = db.db(dbName)
@@ -30,12 +43,6 @@ const findDocuments = function(db, collectionName, callback) {
     callback(docs)
   })
 }
-
-// Sentry setup
-
-Sentry.init({ dsn: process.env.SENTRYDSN });
-
-app.use(Sentry.Handlers.requestHandler());
 
 // Express Routing
 
@@ -93,13 +100,6 @@ app.get('/Release', function mainHandler(req, res) {
   })
 })
 
-app.get('/payment/info', function mainHandler(req, res) {
-  res.send('{"name": "Vapas", "icon": "' + process.env.URL +'/CydiaIcon.png", "description": "Vapas Payment"}')
-})
-
-app.get('/payment_endpoint', function mainHandler(req, res) {
-  res.send(process.env.URL + '/payment/')
-})
 
 app.get('/CydiaIcon.png', function mainHandler(req, res) {
   res.sendFile('./cyidaIcon.png', {root:'./'})
@@ -113,20 +113,20 @@ app.get('/footerIcon.png', function mainHandler(req, res) {
 // Open package manager when someone clicks "Add to package manager"
 
 app.get('/cyidaRedirect', function mainHandler(req, res) {
-  res.set('location','cydia://url/https://cydia.saurik.com/api/share#?'
-  + process.env.URL);
+  res.set('location','cydia://url/https://cydia.saurik.com/api/share#?source='
+    + process.env.URL);
   res.status(302).send()
 })
 
 // Packge content
 
-app.get('/depiction/*', function mainHandler(req, res) {
+app.get('/depiction/:packageID', function mainHandler(req, res) {
 })
 
 // oh god oh fuck
-app.get('/sileodepiction/*', function mainHandler(req, res) {
+app.get('/sileodepiction/:packageID', function mainHandler(req, res) {
   findDocuments(req.db, 'vapasContent', function(docs) {
-    packageData = docs[1].packageData[req.url.substring(16)]
+    packageData = docs[1].packageData[req.params.packageID]
     var knownIssues = ""
     var packagePrice = packageData.price.toString()
     var screenshots = ""
@@ -151,6 +151,40 @@ app.get('/sileodepiction/*', function mainHandler(req, res) {
     dbClient.close()
     res.end()
   })
+})
+
+// Payment handler
+
+app.get('/payment_endpoint', function mainHandler(req, res) {
+  res.send(process.env.URL + '/payment/')
+})
+
+app.get('/payment', function mainHandler(req, res) {
+  res.status(200).send()
+})
+
+app.get('/payment/info', function mainHandler(req, res) {
+  res.send('{"name": "Vapas", "icon": "' + process.env.URL +'/CydiaIcon.png", "description": "Vapas Payment", "authentication_banner": { "message": "Sign into Vapas to access your paid tweaks.", "button": "Sign in" } }')
+})
+
+app.get('/payment/package/:packageID/info', function mainHandler(req, res) {
+  packageData = docs[1].packageData[req.params.packageID]
+  res.send(JSON.parse(`{ "price": "$` + packageData.price +`", "purchased": false, "available": true }`))
+})
+
+// Send back that we are authed, add actual code later
+
+app.get('/payment/authenticate', function mainHandler(req, res) {
+  res.set('location','sileo://authentication_success?token=pp&payment_secret=bigpp');
+  res.status(302).send()
+})
+
+app.get('/payment/sign_out', function mainHandler(req, res) {
+  res.send(JSON.parse('{ "success": true }'))
+})
+
+app.get('/payment/user_info', function mainHandler(req, res) {
+  res.send(JSON.parse('{ "items": [ "gq.vapas.paidtestpackage" ], "user": { "name": "pp", "email": "bigpp@pp.com" } }'))
 })
 
 app.use(Sentry.Handlers.errorHandler());

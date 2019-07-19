@@ -164,12 +164,7 @@ app.get('/payment', function mainHandler(req, res) {
 })
 
 app.get('/payment/info', function mainHandler(req, res) {
-  res.send('{"name": "Vapas", "icon": "' + process.env.URL +'/CydiaIcon.png", "description": "Vapas Payment", "authentication_banner": { "message": "Sign into Vapas to access your paid tweaks.", "button": "Sign in" } }')
-})
-
-app.get('/payment/package/:packageID/info', function mainHandler(req, res) {
-  packageData = docs[1].packageData[req.params.packageID]
-  res.send(JSON.parse(`{ "price": "$` + packageData.price +`", "purchased": false, "available": true }`))
+  res.send('{"name": "Vapas", "icon": "' + process.env.URL +'/CydiaIcon.png", "description": "Vapas Payment", "authentication_banner": { "message": "Sign into Vapas to purchase and download paid packages.", "button": "Sign in" } }')
 })
 
 // Send back that we are authed, add actual code later
@@ -179,12 +174,20 @@ app.get('/payment/authenticate', function mainHandler(req, res) {
   res.status(302).send()
 })
 
-app.get('/payment/sign_out', function mainHandler(req, res) {
+app.post('/payment/sign_out', function mainHandler(req, res) {
   res.send(JSON.parse('{ "success": true }'))
 })
 
-app.get('/payment/user_info', function mainHandler(req, res) {
+app.post('/payment/user_info', function mainHandler(req, res) {
   res.send(JSON.parse('{ "items": [ "gq.vapas.paidtestpackage" ], "user": { "name": "pp", "email": "bigpp@pp.com" } }'))
+})
+
+app.post('/payment/package/:packageID/info', function mainHandler(req, res) {
+  packageData = docs[1].packageData[req.params.packageID]
+  res.send(JSON.parse(`{ "price": "$` + packageData.price +`", "purchased": true, "available": true }`))
+})
+
+app.post('/payment/package/:packageID/authorize_download', function mainHandler(req, res) {
 })
 
 app.use(Sentry.Handlers.errorHandler());

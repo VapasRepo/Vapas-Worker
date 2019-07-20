@@ -52,7 +52,7 @@ app.use('/', express.static(path.join(__dirname, 'webDepictions')))
 // For some odd reason, older cyida versions navigate with (url)/./(path)
 app.get('/./*', function mainHandler(req, res) {
   res.set('location', req.originalUrl.substring(2));
-  res.status(301).send()
+  res.status(308).send()
 })
 
 //Core repo infomation
@@ -183,33 +183,48 @@ app.post('/payment/sign_out', function mainHandler(req, res) {
 })
 
 app.post('/payment/user_info', function mainHandler(req, res) {
-  res.send(JSON.parse('{ "items": [ "gq.vapas.paidtestpackage" ], "user": { "name": "pp", "email": "bigpp@pp.com" } }'))
+  res.send(JSON.parse('{ "items": [  ], "user": { "name": "pp", "email": "bigpp@pp.com" } }'))
 })
 
 app.post('/payment/package/:packageID/info', function mainHandler(req, res) {
   console.log("hey sileo you wanna send us data?")
   packageData = docs[1].packageData[req.params.packageID]
-  res.send(JSON.parse(`{ "price": "$` + packageData.price +`", "purchased": true, "available": true }`))
+  res.send(JSON.parse(`{ "price": "$` + packageData.price +`", "purchased": false, "available": true }`))
 })
 
 app.post('/payment/package/:packageID/authorize_download', function mainHandler(req, res) {
   // TODO: Change the key to be the user's token hashing the udid and time of expiry and maybe some other stuff /shrug
-  // Key expires after 5 seconds from key creation
-  res.send(JSON.parse(`{ "url": "` + process.env.URL + `/secure-download/` + req.params.packageID + `?udid=` + req.body.udid + `&key=` + crypto.createHash('md5').update(req.params.packageID + req.params.packageVersion + req.body.udid + (getTime() + 500)).digest("hex") + `&?packageVersion=` + req.body.version + `" }`))
+  // Key expires after 5 (15 for development) seconds from key creation
+  res.send(JSON.parse(`{ "url": "` + process.env.URL + `/secure-download/` + req.params.packageID + `?udid=` + req.body.udid + `&key=` + crypto.createHash('md5').update(req.params.packageID + req.body.packageVersion + req.body.udid).digest("hex") + `&packageVersion=` + req.body.version + `&expiry=` + (Date.now() + 15000) + `" }`))
 })
 
 // "Secure" download
 
-app.post('/secure-download/:packageID', function mainHandler(req, res) {
+app.get('/secure-download/:packageID', function mainHandler(req, res) {
   // TODO: Change the key to be the user's token hashing the udid and time of expiry and maybe some other stuff /shrug
-  if (req.param.key === crypto.createHash('md5').update(req.params.packageID + req.params.packageVersion + req.param.udid + (getTime() + 500)).digest("hex")) {
-    console.log('Allowed download attempt from udid' + res.param.udid)
-    res.download(`./debs/` + req.params.packageID  + req.params.packageVersion + `_iphoneos-arm.deb`)
+  if ( req.query.expiry <= Date.now() && req.query.key === crypto.createHash('md5').update(req.params.packageID + req.query.packageVersion + req.query.udid).digest("hex")) {
+    console.log('[SECURITY] Allowed download attempt from udid ' + res.query.udid)
+    console.log('[DEBUG] Recived params:')
+    console.log('packageID: ' + req.params.packageID)
+    console.log('packageVersion: ' + req.query.packageVersion)
+    console.log('udid: ' + req.query.udid)
+    console.log('key: ' + req.query.key)
+    console.log('expectedKey: ' + crypto.createHash('md5').update(req.params.packageID + req.query.packageVersion + req.query.udid).digest("hex"))
+    console.log('expiry: ' + req.query.expiry)
+    console.log('currentTime: ' + Date.now())
+    res.download(`./debs/` + req.params.packageID  + req.query.packageVersion + `_iphoneos-arm.deb`)
   } else {
-    // TODO: We should do something here right? Like say "wait a second this doesn't seem right" or something
-    res.status(404).send()
+    res.status(403).send()
     res.end()
-    console.log('Blocked download attempt from udid' + res.param.udid)
+    console.log('[SECURITY] Blocked download attempt from udid ' + req.query.udid)
+    console.log('[DEBUG] Recived params:')
+    console.log('packageID: ' + req.params.packageID)
+    console.log('packageVersion: ' + req.query.packageVersion)
+    console.log('udid: ' + req.query.udid)
+    console.log('key: ' + req.query.key)
+    console.log('expectedKey: ' + crypto.createHash('md5').update(req.params.packageID + req.query.packageVersion + req.query.udid).digest("hex"))
+    console.log('expiry: ' + req.query.expiry)
+    console.log('currentTime: ' + Date.now())
   }
 })
 

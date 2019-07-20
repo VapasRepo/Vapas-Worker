@@ -26,9 +26,9 @@ const dbClient = new MongoClient(dbURL)
 
 app.use(expressMongoDb(dbURL))
 
-app.use(bodyParser.json())
+app.use(express.json())
 
-app.use(bodyParser.urlencoded({ extended: true }))
+app.use(express.urlencoded({ extended: true }))
 
 // Sentry setup
 
@@ -195,15 +195,15 @@ app.post('/payment/package/:packageID/info', function mainHandler(req, res) {
 app.post('/payment/package/:packageID/authorize_download', function mainHandler(req, res) {
   // TODO: Change the key to be the user's token hashing the udid and time of expiry and maybe some other stuff /shrug
   // Key expires after 5 (15 for development) seconds from key creation
-  res.send(JSON.parse(`{ "url": "` + process.env.URL + `/secure-download/` + req.params.packageID + `?udid=` + req.body.udid + `&key=` + crypto.createHash('md5').update(req.params.packageID + req.body.packageVersion + req.body.udid).digest("hex") + `&packageVersion=` + req.body.version + `&expiry=` + (Date.now() + 15000) + `" }`))
+  res.send(JSON.parse(`{ "url": "` + process.env.URL + `/secure-download/` + req.params.packageID + `?udid=` + req.body.udid + `&key=` + crypto.createHash('md5').update(req.params.packageID + req.body.version + req.body.udid).digest("hex") + `&packageVersion=` + req.body.version + `&expiry=` + (Date.now() + 15000) + `" }`))
 })
 
 // "Secure" download
 
 app.get('/secure-download/:packageID', function mainHandler(req, res) {
   // TODO: Change the key to be the user's token hashing the udid and time of expiry and maybe some other stuff /shrug
-  if ( req.query.expiry <= Date.now() && req.query.key === crypto.createHash('md5').update(req.params.packageID + req.query.packageVersion + req.query.udid).digest("hex")) {
-    console.log('[SECURITY] Allowed download attempt from udid ' + res.query.udid)
+  if ( req.query.expiry >= Date.now() && req.query.key === crypto.createHash('md5').update(req.params.packageID + req.query.packageVersion + req.query.udid).digest("hex")) {
+    console.log('[SECURITY] Allowed download attempt from udid ' + req.query.udid)
     console.log('[DEBUG] Recived params:')
     console.log('packageID: ' + req.params.packageID)
     console.log('packageVersion: ' + req.query.packageVersion)

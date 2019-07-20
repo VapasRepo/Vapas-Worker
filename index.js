@@ -12,7 +12,7 @@ const bodyParser = require('body-parser')
 const crypto = require('crypto')
 const btoa = require('btoa')
 const atob = require('atob')
-
+const request = require('request')
 
 // Crypto setup
 
@@ -54,6 +54,25 @@ const findDocuments = function(db, collectionName, callback) {
     callback(docs)
   })
 }
+
+// Debug capture
+
+/**
+app.use(function mainHandler(req, res, next) {
+  console.log('============================')
+  console.log(req.url)
+  console.log(req.secure)
+  console.log(req.body)
+  console.log(req.params)
+  console.log(req.query)
+  console.log(req.route)
+  delete req.headers['connection']
+  next()
+})
+
+app.set('etag', false)
+
+**/
 
 // Express Routing
 
@@ -193,7 +212,7 @@ app.post('/payment/sign_out', function mainHandler(req, res) {
 })
 
 app.post('/payment/user_info', function mainHandler(req, res) {
-  res.send(JSON.parse('{ "items": [  ], "user": { "name": "pp", "email": "bigpp@pp.com" } }'))
+  res.send(JSON.parse('{ "items": [ ], "user": { "name": "pp", "email": "bigpp@pp.com" } }'))
 })
 
 app.post('/payment/package/:packageID/info', function mainHandler(req, res) {
@@ -202,40 +221,58 @@ app.post('/payment/package/:packageID/info', function mainHandler(req, res) {
   res.send(JSON.parse(`{ "price": "$` + packageData.price +`", "purchased": false, "available": true }`))
 })
 
+app.post('/payment/package/:packageID/purchase', function mainHandler(req, res) {
+  console.log("hey sileo you wanna send us data?")
+  res.send(JSON.parse(`{ "status": "1", "url": "sileo://payment_completed" }`))
+})
+
+
 app.post('/payment/package/:packageID/authorize_download', function mainHandler(req, res) {
 
   // Key expires after 10 (20 for development) seconds from key creation
   let hashedDataCipher = crypto.createCipheriv(cryptoAlgorithm, Buffer.from(workerMasterKey, 'hex'), Buffer.from(workerMasterIV, 'hex'))
   let hashedData = hashedDataCipher.update(btoa(JSON.stringify(JSON.parse(`{"udid": "` + req.body.udid + `", "packageID": "` + req.params.packageID + `", "packageVersion": "` + req.body.version + `", "expiry": "` + (Date.now() + 20000) + `"}`))),  'base64', 'base64') + hashedDataCipher.final('base64')
+  hashedData = hashedData.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
 
-  res.send(JSON.parse(`{ "url": "` + process.env.URL + `/secure-download/?key=` + hashedData + `" }`))
+  res.send(JSON.parse(`{ "url": "` + process.env.URL + `/secure-download/?auth=` + hashedData + `" }`))
 })
 
-// "Secure" download
+// Secure download
 
 app.get('/secure-download/', function mainHandler(req, res) {
-  if (req.query.key != null) {
+  if (req.query.auth != null) {
+    authKey = req.query.auth.replace('-', '+').replace('_', '/')
+    while (authKey.length % 4)
+      authKey += '='
     let hashedDataDecipher = crypto.createDecipheriv(cryptoAlgorithm, Buffer.from(workerMasterKey, 'hex'), Buffer.from(workerMasterIV, 'hex'))
-    let hashedData = JSON.parse(atob(hashedDataDecipher.update(req.query.key, 'base64', 'base64') + hashedDataDecipher.final('base64')))
+    let hashedData
+    try {
+      hashedData = JSON.parse(atob(hashedDataDecipher.update(authKey, 'base64', 'base64') + hashedDataDecipher.final('base64')))
+    }
+    catch (err) {
+      res.status(403).send()
+      res.end()
+      console.log('[SECURITY] Blocked key error')
+    }
     if ( hashedData.expiry >= Date.now()) {
       console.log('[SECURITY] Allowed download attempt from udid ' + hashedData.udid)
       console.log('[DEBUG] Recived params:')
       console.log('packageID: ' + hashedData.packageID)
       console.log('packageVersion: ' + hashedData.packageVersion)
       console.log('udid: ' + hashedData.udid)
-      console.log('key: ' + req.query.key)
+      console.log('key: ' + req.query.auth)
       console.log('expiry: ' + hashedData.expiry)
       console.log('currentTime: ' + Date.now())
       res.download(`./debs/` + hashedData.packageID  + '_' + hashedData.packageVersion + `_iphoneos-arm.deb`)
     } else {
       res.status(403).send()
       res.end()
-      console.log('[SECURITY] Blocked download attempt from udid ' + hashedData.udid)
+      console.log('[SECURITY] Blocked download attempt from udid ' + hashedData.udid + ' (Link expired)')
       console.log('[DEBUG] Recived params:')
       console.log('packageID: ' + hashedData.packageID)
       console.log('packageVersion: ' + hashedData.packageVersion)
       console.log('udid: ' + hashedData.udid)
-      console.log('key: ' + req.query.key)
+      console.log('key: ' + req.query.auth)
       console.log('expiry: ' + hashedData.expiry)
       console.log('currentTime: ' + Date.now())
     }
@@ -245,27 +282,24 @@ app.get('/secure-download/', function mainHandler(req, res) {
   }
 })
 
-// Unsecure download
+// Insecure download
 
 app.get('/debs/:packageID', function mainHandler(req, res) {
   if (req.params.packageID != "") {
     findDocuments(req.db, 'vapasContent', function(docs) {
-      let packageID = req.params.packageID.substring(0, req.params.packageID.indexOf('_'))
-      console.log(docs[1].packageData[packageID].price.toString())
+      let packageID = req.params.packageID.substring(0, req.params.packageID.indexOf('_')).toString()
       if (docs[1].packageData[packageID].price.toString() === "0") {
         let hashedDataCipher = crypto.createCipheriv(cryptoAlgorithm, Buffer.from(workerMasterKey, 'hex'), Buffer.from(workerMasterIV, 'hex'))
-        let hashedData = hashedDataCipher.update(btoa(JSON.stringify(JSON.parse(`{"packageID": "` + packageID + `", "packageVersion": "` + docs[1].packageData[packageID].currentVersion.versionNumber + `", "expiry": "` + (Date.now() + 20000) + `"}`))),  'base64', 'base64') + hashedDataCipher.final('base64')
-        console.log('Redirect to: ' + process.env.URL + `/secure-download/?key=` + hashedData)
-        res.redirect(process.env.URL + `/secure-download/?key=` + hashedData)
+        let hashedData = hashedDataCipher.update(btoa(JSON.stringify(JSON.parse(`{ "udid":"4e1243bd22c66e76c2ba9eddc1f91394e57f9f83", "packageID": "` + packageID + `", "packageVersion": "` + docs[1].packageData[packageID].currentVersion.versionNumber + `", "expiry": "` + (Date.now() + 20000) + `"}`))),  'base64', 'base64') + hashedDataCipher.final('base64')
+        hashedData = hashedData.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+        res.redirect(process.env.URL + `/secure-download/?auth=` + hashedData)
       } else {
         // TODO: Check if the user is logged in and then check if they own the package
-        console.log('403')
         res.status(403).send()
         res.end()
       }
     })
   } else {
-    console.log('404')
     res.status(404).send()
     res.end()
   }

@@ -94,20 +94,7 @@ app.get('/sileo-featured.json', function mainHandler (req, res) {
   })
 })
 
-app.get('/Packages', function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasContent', function (docs) {
-    for (x in docs[0].Packages) {
-      for (i in docs[0].Packages[x]) {
-        res.write(i + ': ' + docs[0].Packages[x][i] + '\n')
-      }
-      res.write('\n')
-    }
-    dbClient.close()
-    res.end()
-  })
-})
-
-app.get('/Packages.gz', compression(), function mainHandler (req, res) {
+app.get('/Packages*', compression(),function mainHandler (req, res) {
   findDocuments(req.db, 'vapasContent', function (docs) {
     for (x in docs[0].Packages) {
       for (i in docs[0].Packages[x]) {

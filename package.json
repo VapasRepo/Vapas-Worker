@@ -16,7 +16,6 @@
     "express-mongo-db": "^2.0.4",
     "moment": "^2.24.0",
     "mongodb": "^3.2.7",
-    "request": "^2.88.0",
     "standard": "^13.1.0"
   },
   "scripts": {

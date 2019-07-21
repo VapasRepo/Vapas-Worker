@@ -4,7 +4,7 @@ image: node:latest
 
 # Pick zero or more services to be used on all builds.
 services:
-  - mongodb:latest
+#  - mongodb:latest
 
 # Make sure yarn is installed and cache is set
 before_script:
@@ -26,4 +26,7 @@ test_standard:
 #  script:
 #    - yarn install
 #    - node ./test/db.js
-
+artifacts:
+  reports:
+    - codequality
+    - dependency_scanning

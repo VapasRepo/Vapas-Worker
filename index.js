@@ -1,18 +1,15 @@
 const express = require('express')
 const dotenv = require('dotenv')
 const Sentry = require('@sentry/node')
-const Mongo = require('mongodb')
 const MongoClient = require('mongodb').MongoClient
 const assert = require('assert')
 const compression = require('compression')
 const expressMongoDb = require('express-mongo-db')
 const moment = require('moment')
 const path = require('path')
-const bodyParser = require('body-parser')
 const crypto = require('crypto')
 const btoa = require('btoa')
 const atob = require('atob')
-const request = require('request')
 
 // Crypto setup
 
@@ -94,8 +91,9 @@ app.get('/sileo-featured.json', function mainHandler (req, res) {
   })
 })
 
-app.get('/Packages*', compression(),function mainHandler (req, res) {
+app.get('/Packages*', compression(), function mainHandler (req, res) {
   findDocuments(req.db, 'vapasContent', function (docs) {
+    var x, i
     for (x in docs[0].Packages) {
       for (i in docs[0].Packages[x]) {
         res.write(i + ': ' + docs[0].Packages[x][i] + '\n')
@@ -109,6 +107,7 @@ app.get('/Packages*', compression(),function mainHandler (req, res) {
 
 app.get('/Release', function mainHandler (req, res) {
   findDocuments(req.db, 'vapasInfomation', function (docs) {
+    var i
     for (i in docs[1].Release) {
       res.write(i + ': ' + docs[1].Release[i] + '\n')
     }
@@ -142,15 +141,16 @@ app.get('/depiction/:packageID', function mainHandler (req, res) {
 // oh god oh fuck
 app.get('/sileodepiction/:packageID', function mainHandler (req, res) {
   findDocuments(req.db, 'vapasContent', function (docs) {
-    packageData = docs[1].packageData[req.params.packageID]
+    var packageData = docs[1].packageData[req.params.packageID]
     var knownIssues = ''
     var packagePrice = packageData.price.toString()
     var screenshots = ''
     if (packagePrice === '0') {
-      var packagePrice = 'Free'
+      packagePrice = 'Free'
     } else {
-      var packagePrice = '$' + packagePrice
+      packagePrice = '$' + packagePrice
     }
+    var i
     for (i in packageData.knownIssues) {
       knownIssues += '* ' + packageData.knownIssues[i] + '\\n'
     }
@@ -161,7 +161,7 @@ app.get('/sileodepiction/:packageID', function mainHandler (req, res) {
         screenshots += `{ "accessibilityText": "Screenshot", "url": "` + packageData.screenshots[i] + `", "fullSizeURL": "` + packageData.screenshots[i] + `" },`
       }
     }
-    sileoData = `{ "minVersion":"0.1", "headerImage":"` + packageData.headerImage + `", "tintColor": "` + packageData.tint + `", "tabs": [ { "tabname": "Details", "views": [ { "title": "` + packageData.shortDescription + `", "useBoldText": true, "useBottomMargin": false, "class": "DepictionSubheaderView" }, { "markdown": "` + packageData.longDescription + `", "useSpacing": true, "class": "DepictionMarkdownView" }, { "class": "DepictionSeparatorView" }, { "title": "Screenshots", "class": "DepictionHeaderView" }, { "itemCornerRadius": 6, "itemSize": "{160, 275.41333333333336}", "screenshots": [ ` + screenshots + ` ], "ipad": { "itemCornerRadius": 9, "itemSize": "{320, 550.8266666666667}", "screenshots": [ ` + screenshots + ` ], "class": "DepictionScreenshotView" }, "class": "DepictionScreenshotsView" }, { "class": "DepictionSeparatorView" }, { "title": "Known Issues", "class": "DepictionHeaderView" }, { "markdown": "` + knownIssues + `", "useSpacing": true, "class": "DepictionMarkdownView" }, { "class": "DepictionSeparatorView" }, { "title": "Package Information", "class": "DepictionHeaderView" }, { "title": "Version", "text": "` + packageData.currentVersion.versionNumber + `", "class": "DepictionTableTextView" }, { "title": "Released", "text": "` + moment(packageData.currentVersion.dateReleased).format('MMMM Do YYYY') + `", "class": "DepictionTableTextView" }, { "title": "Price", "text": "` + packagePrice + `", "class": "DepictionTableTextView" }, { "class": "DepictionSeparatorView" }, { "title": "Developer Infomation", "class": "DepictionHeaderView" },{ "class": "DepictionStackView" }, { "title": "Developer", "text": "` + packageData.developer + `", "class": "DepictionTableTextView" }, { "title": "Support (` + packageData.supportLink.name + `)", "action": "` + packageData.supportLink.url + `", "class": "DepictionTableButtonView" }, { "class": "DepictionSeparatorView" }, { "spacing": 10, "class": "DepictionSpacerView" }, {"URL": "` + process.env.URL + `/footerIcon.png", "width": 125, "height": 67.5, "cornerRadius": 0, "alignment": 1, "class": "DepictionImageView" } ], "class": "DepictionStackView" }], "class": "DepictionTabView" }`
+    var sileoData = `{ "minVersion":"0.1", "headerImage":"` + packageData.headerImage + `", "tintColor": "` + packageData.tint + `", "tabs": [ { "tabname": "Details", "views": [ { "title": "` + packageData.shortDescription + `", "useBoldText": true, "useBottomMargin": false, "class": "DepictionSubheaderView" }, { "markdown": "` + packageData.longDescription + `", "useSpacing": true, "class": "DepictionMarkdownView" }, { "class": "DepictionSeparatorView" }, { "title": "Screenshots", "class": "DepictionHeaderView" }, { "itemCornerRadius": 6, "itemSize": "{160, 275.41333333333336}", "screenshots": [ ` + screenshots + ` ], "ipad": { "itemCornerRadius": 9, "itemSize": "{320, 550.8266666666667}", "screenshots": [ ` + screenshots + ` ], "class": "DepictionScreenshotView" }, "class": "DepictionScreenshotsView" }, { "class": "DepictionSeparatorView" }, { "title": "Known Issues", "class": "DepictionHeaderView" }, { "markdown": "` + knownIssues + `", "useSpacing": true, "class": "DepictionMarkdownView" }, { "class": "DepictionSeparatorView" }, { "title": "Package Information", "class": "DepictionHeaderView" }, { "title": "Version", "text": "` + packageData.currentVersion.versionNumber + `", "class": "DepictionTableTextView" }, { "title": "Released", "text": "` + moment(packageData.currentVersion.dateReleased).format('MMMM Do YYYY') + `", "class": "DepictionTableTextView" }, { "title": "Price", "text": "` + packagePrice + `", "class": "DepictionTableTextView" }, { "class": "DepictionSeparatorView" }, { "title": "Developer Infomation", "class": "DepictionHeaderView" },{ "class": "DepictionStackView" }, { "title": "Developer", "text": "` + packageData.developer + `", "class": "DepictionTableTextView" }, { "title": "Support (` + packageData.supportLink.name + `)", "action": "` + packageData.supportLink.url + `", "class": "DepictionTableButtonView" }, { "class": "DepictionSeparatorView" }, { "spacing": 10, "class": "DepictionSpacerView" }, {"URL": "` + process.env.URL + `/footerIcon.png", "width": 125, "height": 67.5, "cornerRadius": 0, "alignment": 1, "class": "DepictionImageView" } ], "class": "DepictionStackView" }], "class": "DepictionTabView" }`
     // console.log(sileoData)
     res.send(JSON.parse(sileoData))
     dbClient.close()
@@ -201,9 +201,11 @@ app.post('/payment/user_info', function mainHandler (req, res) {
 })
 
 app.post('/payment/package/:packageID/info', function mainHandler (req, res) {
-  console.log('hey sileo you wanna send us data?')
-  packageData = docs[1].packageData[req.params.packageID]
-  res.send(JSON.parse(`{ "price": "$` + packageData.price + `", "purchased": false, "available": true }`))
+  findDocuments(req.db, 'vapasContent', function (docs) {
+    console.log('hey sileo you wanna send us data?')
+    var packageData = docs[1].packageData[req.params.packageID]
+    res.send(JSON.parse(`{ "price": "$` + packageData.price + `", "purchased": false, "available": true }`))
+  })
 })
 
 app.post('/payment/package/:packageID/purchase', function mainHandler (req, res) {
@@ -224,7 +226,7 @@ app.post('/payment/package/:packageID/authorize_download', function mainHandler 
 
 app.get('/secure-download/', function mainHandler (req, res) {
   if (req.query.auth != null) {
-    authKey = req.query.auth.replace('-', '+').replace('_', '/')
+    var authKey = req.query.auth.replace('-', '+').replace('_', '/')
     while (authKey.length % 4) { authKey += '=' }
     const hashedDataDecipher = crypto.createDecipheriv(cryptoAlgorithm, Buffer.from(workerMasterKey, 'hex'), Buffer.from(workerMasterIV, 'hex'))
     let hashedData
@@ -237,25 +239,11 @@ app.get('/secure-download/', function mainHandler (req, res) {
     }
     if (hashedData.expiry >= Date.now()) {
       console.log('[SECURITY] Allowed download attempt from udid ' + hashedData.udid)
-      console.log('[DEBUG] Recived params:')
-      console.log('packageID: ' + hashedData.packageID)
-      console.log('packageVersion: ' + hashedData.packageVersion)
-      console.log('udid: ' + hashedData.udid)
-      console.log('key: ' + req.query.auth)
-      console.log('expiry: ' + hashedData.expiry)
-      console.log('currentTime: ' + Date.now())
       res.download(`./debs/` + hashedData.packageID + '_' + hashedData.packageVersion + `_iphoneos-arm.deb`)
     } else {
       res.status(403).send()
       res.end()
       console.log('[SECURITY] Blocked download attempt from udid ' + hashedData.udid + ' (Link expired)')
-      console.log('[DEBUG] Recived params:')
-      console.log('packageID: ' + hashedData.packageID)
-      console.log('packageVersion: ' + hashedData.packageVersion)
-      console.log('udid: ' + hashedData.udid)
-      console.log('key: ' + req.query.auth)
-      console.log('expiry: ' + hashedData.expiry)
-      console.log('currentTime: ' + Date.now())
     }
   } else {
     res.status(403).send()

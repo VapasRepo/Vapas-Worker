@@ -26,7 +26,6 @@ test_standard:
 #  script:
 #    - yarn install
 #    - node ./test/db.js
-artifacts:
-  reports:
-    - codequality
-    - dependency_scanning
+
+include:
+  template: Dependency-Scanning.gitlab-ci.yml

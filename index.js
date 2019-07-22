@@ -141,9 +141,9 @@ app.get('/depiction/:packageID', function mainHandler (req, res) {
 // oh god oh fuck
 app.get('/sileodepiction/:packageID', function mainHandler (req, res) {
   findDocuments(req.db, 'vapasContent', function (docs) {
-    var screenshots = ""
-    var knownIssues = ""
-    var changeLog = ""
+    var screenshots = ''
+    var knownIssues = ''
+    var changeLog = ''
     var packageData = docs[1].packageData[req.params.packageID]
     var packagePrice = packageData.price.toString()
     if (packagePrice === '0') {
@@ -172,7 +172,6 @@ app.get('/sileodepiction/:packageID', function mainHandler (req, res) {
       }
     }
     var sileoData = `{ "minVersion":"0.1", "headerImage":"` + packageData.headerImage + `", "tintColor": "` + packageData.tint + `", "tabs": [ { "tabname": "Details", "views": [ { "title": "` + packageData.shortDescription + `", "useBoldText": true, "useBottomMargin": false, "class": "DepictionSubheaderView" }, { "markdown": "` + packageData.longDescription + `", "useSpacing": true, "class": "DepictionMarkdownView" }, { "class": "DepictionSeparatorView" }, { "title": "Screenshots", "class": "DepictionHeaderView" }, { "itemCornerRadius": 6, "itemSize": "{160, 275.41333333333336}", "screenshots": [ ` + screenshots + ` ], "ipad": { "itemCornerRadius": 9, "itemSize": "{320, 550.8266666666667}", "screenshots": [ ` + screenshots + ` ], "class": "DepictionScreenshotView" }, "class": "DepictionScreenshotsView" }, { "class": "DepictionSeparatorView" }, { "title": "Known Issues", "class": "DepictionHeaderView" }, { "markdown": "` + knownIssues + `", "useSpacing": true, "class": "DepictionMarkdownView" }, { "class": "DepictionSeparatorView" }, { "title": "Package Information", "class": "DepictionHeaderView" }, { "title": "Version", "text": "` + packageData.currentVersion.versionNumber + `", "class": "DepictionTableTextView" }, { "title": "Released", "text": "` + moment(packageData.currentVersion.dateReleased).format('MMMM Do YYYY') + `", "class": "DepictionTableTextView" }, { "title": "Price", "text": "` + packagePrice + `", "class": "DepictionTableTextView" }, { "class": "DepictionSeparatorView" }, { "title": "Developer Infomation", "class": "DepictionHeaderView" },{ "class": "DepictionStackView" }, { "title": "Developer", "text": "` + packageData.developer + `", "class": "DepictionTableTextView" }, { "title": "Support (` + packageData.supportLink.name + `)", "action": "` + packageData.supportLink.url + `", "class": "DepictionTableButtonView" }, { "class": "DepictionSeparatorView" }, { "spacing": 10, "class": "DepictionSpacerView" }, {"URL": "` + process.env.URL + `/footerIcon.png", "width": 125, "height": 67.5, "cornerRadius": 0, "alignment": 1, "class": "DepictionImageView" } ], "class": "DepictionStackView" }, { "tabname": "Changelog", "views": [{ "title": "Version ` + packageData.currentVersion.versionNumber + `", "useBoldText": true, "useBottomMargin": true, "class": "DepictionSubheaderView" }, { "markdown": "` + changeLog + `", "useSpacing": false, "class": "DepictionMarkdownView" } ], "class": "DepictionStackView" } ], "class": "DepictionTabView" }`
-    console.log(sileoData)
     res.send(JSON.parse(sileoData))
     dbClient.close()
     res.end()

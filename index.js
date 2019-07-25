@@ -190,7 +190,7 @@ app.get('/payment', function mainHandler (req, res) {
 })
 
 app.get('/payment/info', function mainHandler (req, res) {
-  res.send('{"name": "Vapas", "icon": "' + process.env.URL + '/CydiaIcon.png", "description": "Vapas Payment", "authentication_banner": { "message": "Sign into Vapas to purchase and download paid packages.", "button": "Sign in" } }')
+  res.send('{"name": "Vapas", "icon": "' + process.env.URL + '/CydiaIcon.png", "description": "Vapas Pay", "authentication_banner": { "message": "Sign into Vapas to purchase and download paid packages.", "button": "Sign in" } }')
 })
 
 // Send back that we are authed, add actual code later

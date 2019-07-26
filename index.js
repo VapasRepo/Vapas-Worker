@@ -10,6 +10,8 @@ const path = require('path')
 const crypto = require('crypto')
 const btoa = require('btoa')
 const atob = require('atob')
+const pino = require('pino')()
+const pinoExpress = require('express-pino-logger')()
 
 // Crypto setup
 
@@ -35,6 +37,8 @@ app.use(expressMongoDb(dbURL))
 
 app.use(express.json())
 
+app.use (pinoExpress)
+
 app.use(express.urlencoded({ extended: true }))
 
 // Sentry setup
@@ -51,25 +55,6 @@ const findDocuments = function (db, collectionName, callback) {
     callback(docs)
   })
 }
-
-// Debug capture
-
-/**
-app.use(function mainHandler(req, res, next) {
-  console.log('============================')
-  console.log(req.url)
-  console.log(req.secure)
-  console.log(req.body)
-  console.log(req.params)
-  console.log(req.query)
-  console.log(req.route)
-  delete req.headers['connection']
-  next()
-})
-
-app.set('etag', false)
-
-**/
 
 // Express Routing
 
@@ -211,14 +196,12 @@ app.post('/payment/user_info', function mainHandler (req, res) {
 
 app.post('/payment/package/:packageID/info', function mainHandler (req, res) {
   findDocuments(req.db, 'vapasContent', function (docs) {
-    console.log('hey sileo you wanna send us data?')
     var packageData = docs[1].packageData[req.params.packageID]
     res.send(JSON.parse(`{ "price": "$` + packageData.price + `", "purchased": false, "available": true }`))
   })
 })
 
 app.post('/payment/package/:packageID/purchase', function mainHandler (req, res) {
-  console.log('hey sileo you wanna send us data?')
   res.send(JSON.parse(`{ "status": "1", "url": "sileo://payment_completed" }`))
 })
 
@@ -244,15 +227,15 @@ app.get('/secure-download/', function mainHandler (req, res) {
     } catch (err) {
       res.status(403).send()
       res.end()
-      console.log('[SECURITY] Blocked key error')
+      pino.warn('[SECURITY] Blocked key error')
     }
     if (hashedData.expiry >= Date.now()) {
-      console.log('[SECURITY] Allowed download attempt from udid ' + hashedData.udid)
+      pino.info('[SECURITY] Allowed download attempt from udid ' + hashedData.udid)
       res.download(`./debs/` + hashedData.packageID + '_' + hashedData.packageVersion + `_iphoneos-arm.deb`)
     } else {
       res.status(403).send()
       res.end()
-      console.log('[SECURITY] Blocked download attempt from udid ' + hashedData.udid + ' (Link expired)')
+      pino.warn('[SECURITY] Blocked download attempt from udid ' + hashedData.udid + ' (Link expired)')
     }
   } else {
     res.status(403).send()
@@ -285,4 +268,4 @@ app.get('/debs/:packageID', function mainHandler (req, res) {
 
 app.use(Sentry.Handlers.errorHandler())
 
-app.listen(port, () => console.log(`Listening on port ${port}`))
+app.listen(port, () => pino.info(`Listening on port ${port}`))

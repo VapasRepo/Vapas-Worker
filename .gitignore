@@ -92,3 +92,6 @@ debs/
 
 # Ignore GNOME Builder config
 .buildconfig
+
+# Ignore NPM
+package-lock.json

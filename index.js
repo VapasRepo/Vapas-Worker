@@ -37,7 +37,7 @@ app.use(expressMongoDb(dbURL))
 
 app.use(express.json())
 
-app.use (pinoExpress)
+app.use(pinoExpress)
 
 app.use(express.urlencoded({ extended: true }))
 

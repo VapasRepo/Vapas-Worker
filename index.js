@@ -13,6 +13,22 @@ const atob = require('atob')
 const pino = require('pino')()
 const pinoExpress = require('express-pino-logger')()
 
+// Passport.js
+
+var Auth0Strategy = require('passport-auth0'),
+    passport = require('passport')
+
+var strategy = new Auth0Strategy({
+   domain:       process.env.auth0URL,
+   clientID:     process.env.auth0clientID,
+   clientSecret: process.env.auth0clientSecret,
+   callbackURL:  process.env.auth0callbackURL || "http://localhost:3000/callback"
+  },
+  function(accessToken, refreshToken, extraParams, profile, done) {
+    return done(null, profile)
+  }
+)
+
 // Crypto setup
 
 const cryptoAlgorithm = 'aes-256-cbc'
@@ -40,6 +56,12 @@ app.use(express.json())
 app.use(pinoExpress)
 
 app.use(express.urlencoded({ extended: true }))
+
+passport.use(strategy)
+
+app.use(passport.initialize())
+
+app.use(passport.session())
 
 // Sentry setup
 
@@ -118,12 +140,12 @@ app.get('/cyidaRedirect', function mainHandler (req, res) {
   res.end()
 })
 
-// Packge content
+// Legacy Depictions
 
 app.get('/depiction/:packageID', function mainHandler (req, res) {
 })
 
-// oh god oh fuck
+// Native Depictions
 app.get('/sileodepiction/:packageID', function mainHandler (req, res) {
   findDocuments(req.db, 'vapasContent', function (docs) {
     var screenshots = ''
@@ -180,10 +202,8 @@ app.get('/payment/info', function mainHandler (req, res) {
 
 // Send back that we are authed, add actual code later
 
-app.get('/payment/authenticate', function mainHandler (req, res) {
-  res.set('location', 'sileo://authentication_success?token=f2ca1bb6c7e907d06dafe4687e579fce&payment_secret=bigpp')
-  res.status(302).send()
-  res.end()
+app.get('/payment/authenticate', passport.authenticate('auth0', {}), function (req, res) {
+  res.redirect("/")
 })
 
 app.post('/payment/sign_out', function mainHandler (req, res) {
@@ -227,15 +247,14 @@ app.get('/secure-download/', function mainHandler (req, res) {
     } catch (err) {
       res.status(403).send()
       res.end()
-      pino.warn('[SECURITY] Blocked key error')
+      pino.warn('Blocked key error')
     }
     if (hashedData.expiry >= Date.now()) {
-      pino.info('[SECURITY] Allowed download attempt from udid ' + hashedData.udid)
       res.download(`./debs/` + hashedData.packageID + '_' + hashedData.packageVersion + `_iphoneos-arm.deb`)
     } else {
       res.status(403).send()
       res.end()
-      pino.warn('[SECURITY] Blocked download attempt from udid ' + hashedData.udid + ' (Link expired)')
+      pino.warn('Blocked download attempt from udid ' + hashedData.udid + ' (Link expired)')
     }
   } else {
     res.status(403).send()

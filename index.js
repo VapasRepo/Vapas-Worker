@@ -13,21 +13,22 @@ const atob = require('atob')
 const pino = require('pino')()
 const pinoExpress = require('express-pino-logger')()
 
+dotenv.config()
+
 // Passport.js
 
-var Auth0Strategy = require('passport-auth0'),
-    passport = require('passport')
+const Auth0Strategy = require('passport-auth0')
+const passport = require('passport')
 
-var strategy = new Auth0Strategy({
-   domain:       process.env.auth0URL,
-   clientID:     process.env.auth0clientID,
-   clientSecret: process.env.auth0clientSecret,
-   callbackURL:  process.env.auth0callbackURL || "http://localhost:3000/callback"
-  },
-  function(accessToken, refreshToken, extraParams, profile, done) {
-    return done(null, profile)
-  }
-)
+const strategy = new Auth0Strategy({
+  domain: process.env.auth0URL,
+  clientID: process.env.auth0clientID,
+  clientSecret: process.env.auth0clientSecret,
+  callbackURL: process.env.auth0callbackURL || 'http://localhost:3000/callback'
+},
+function (accessToken, refreshToken, extraParams, profile, done) {
+  return done(null, profile)
+})
 
 // Crypto setup
 
@@ -39,7 +40,6 @@ const workerMasterIV = crypto.randomBytes(16)
 const app = express()
 
 const port = 1406
-dotenv.config()
 
 // MongoDB Setup
 
@@ -124,11 +124,11 @@ app.get('/Release', function mainHandler (req, res) {
 })
 
 app.get('/CydiaIcon.png', function mainHandler (req, res) {
-  res.sendFile('./cyidaIcon.png', { root: './' })
+  res.sendFile('./assets/cyidaIcon.png', { root: './' })
 })
 
 app.get('/footerIcon.png', function mainHandler (req, res) {
-  res.sendFile('./footerIcon.png', { root: './' })
+  res.sendFile('./assets/footerIcon.png', { root: './' })
 })
 
 // Open package manager when someone clicks "Add to package manager"
@@ -165,9 +165,11 @@ app.get('/sileodepiction/:packageID', function mainHandler (req, res) {
     i = 0
     for (i in packageData.screenshots) {
       if (i.toString() === (packageData.screenshots.length - 1).toString()) {
-        screenshots += `{ "accessibilityText": "Screenshot", "url": "` + packageData.screenshots[i] + `", "fullSizeURL": "` + packageData.screenshots[i] + `" }`
+        screenshots += `{ "accessibilityText": "Screenshot", "url": "` + packageData.screenshots[i] + `", 
+        "fullSizeURL": "` + packageData.screenshots[i] + `" }`
       } else {
-        screenshots += `{ "accessibilityText": "Screenshot", "url": "` + packageData.screenshots[i] + `", "fullSizeURL": "` + packageData.screenshots[i] + `" },`
+        screenshots += `{ "accessibilityText": "Screenshot", "url": "` + packageData.screenshots[i] + `", 
+        "fullSizeURL": "` + packageData.screenshots[i] + `" },`
       }
     }
     i = 0
@@ -203,7 +205,7 @@ app.get('/payment/info', function mainHandler (req, res) {
 // Send back that we are authed, add actual code later
 
 app.get('/payment/authenticate', passport.authenticate('auth0', {}), function (req, res) {
-  res.redirect("/")
+  res.redirect('/')
 })
 
 app.post('/payment/sign_out', function mainHandler (req, res) {

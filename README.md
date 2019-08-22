@@ -13,9 +13,12 @@ In order to run the worker, you'll first need to create a `.env` file that conta
 After that, just run `yarn install` and then `yarn start`!
 
 ## Screenshots
-
-![Sileo Package Listing](https://gitlab.com/vapas/vapas-worker/raw/master/screenshots/sileo1.png) ![Sileo Depiction 1](https://gitlab.com/vapas/vapas-worker/raw/master/screenshots/sileo2.png) ![Sileo Depiction 2](https://gitlab.com/vapas/vapas-worker/raw/master/screenshots/sileo3.png)
+<img src="https://gitlab.com/vapas/vapas-worker/raw/master/screenshots/sileo1.png" width="25%" alt="Vapas Footer Icon"/>
+<img src="https://gitlab.com/vapas/vapas-worker/raw/master/screenshots/sileo2.png" width="25%" alt="Vapas Footer Icon"/>
+<img src="https://gitlab.com/vapas/vapas-worker/raw/master/screenshots/sileo3.png" width="25%" alt="Vapas Footer Icon"/>
 
 ---
 
-<img src="https://gitlab.com/vapas/vapas-worker/raw/master/footerIcon.png" style="width:50%;" alt="Vapas Footer Icon"/>
+<div align="center">
+    <img src="https://gitlab.com/vapas/vapas-worker/raw/master/assets/footerIcon.png" width="10%" alt="Vapas Footer Icon"/>
+</div>

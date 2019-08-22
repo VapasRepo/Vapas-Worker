@@ -6,12 +6,23 @@ const assert = require('assert')
 const compression = require('compression')
 const expressMongoDb = require('express-mongo-db')
 const moment = require('moment')
+const fs = require('fs')
 const path = require('path')
 const crypto = require('crypto')
 const btoa = require('btoa')
 const atob = require('atob')
 const pino = require('pino')()
 const pinoExpress = require('express-pino-logger')()
+const expressSession = require('cookie-session')
+const util = require('util')
+const url = require('url')
+const querystring = require('querystring')
+const JwtStrategy = require('passport-jwt').Strategy
+const ExtractJwt = require('passport-jwt').ExtractJwt
+const jwt = require('express-jwt')
+const jwtCert = fs.readFileSync(path.resolve(__dirname, './vapas.cer'), 'utf8')
+const cookieParser = require('cookie-parser')
+const bodyParser = require('body-parser')
 
 dotenv.config()
 
@@ -20,15 +31,42 @@ dotenv.config()
 const Auth0Strategy = require('passport-auth0')
 const passport = require('passport')
 
-const strategy = new Auth0Strategy({
+const session = {
+  secret: crypto.randomBytes(8).toString(),
+  cookie: {},
+  resave: false,
+  saveUninitialized: true
+}
+
+session.cookie.secure = true
+
+var strategy = new Auth0Strategy({
   domain: process.env.auth0URL,
   clientID: process.env.auth0clientID,
   clientSecret: process.env.auth0clientSecret,
-  callbackURL: process.env.auth0callbackURL || 'http://localhost:3000/callback'
+  callbackURL: process.env.URL + '/payment/auth0callback'
 },
 function (accessToken, refreshToken, extraParams, profile, done) {
   return done(null, profile)
 })
+
+
+const opts = {}
+opts.jwtFromRequest = ExtractJwt.fromBodyField('token')
+opts.secretOrKey = jwtCert
+passport.use(new JwtStrategy(opts, function(jwt_payload, done) {
+  User.findOne({id: jwt_payload.sub}, function(err, user) {
+    if (err) {
+      return done(err, false)
+    }
+    if (user) {
+      return done(null, user)
+    } else {
+      return done(null, false)
+    }
+  })
+}))
+
 
 // Crypto setup
 
@@ -55,13 +93,27 @@ app.use(express.json())
 
 app.use(pinoExpress)
 
+app.use(bodyParser.urlencoded({extended: true}))
+
 app.use(express.urlencoded({ extended: true }))
+
+app.use(expressSession(session))
+
+app.use(cookieParser())
 
 passport.use(strategy)
 
 app.use(passport.initialize())
 
 app.use(passport.session())
+
+passport.serializeUser((user, done) => {
+  done(null, user)
+})
+
+passport.deserializeUser((user, done) => {
+  done(null, user)
+})
 
 // Sentry setup
 
@@ -204,15 +256,45 @@ app.get('/payment/info', function mainHandler (req, res) {
 
 // Send back that we are authed, add actual code later
 
-app.get('/payment/authenticate', passport.authenticate('auth0', {}), function (req, res) {
+app.get('/payment/authenticate', passport.authenticate('auth0', { scope: 'profile openid'}), (req, res) => {
   res.redirect('/')
 })
 
-app.post('/payment/sign_out', function mainHandler (req, res) {
-  res.send(JSON.parse('{ "success": true }'))
+app.get('/payment/auth0callback', (req, res, next) => {
+  passport.authenticate('auth0', function (err, user, info) {
+    if (err) { return next(err) }
+    if (!user) { return res.sendStatus((403)) }
+    req.logIn(user, function (err) {
+      if (err) { return next(err) }
+      req.session.timestamp = new Date()
+      res.redirect('/payment/capturesession')
+    })
+  })(req, res, next)
 })
 
-app.post('/payment/user_info', function mainHandler (req, res) {
+app.get('/payment/capturesession', function mainHandler (req, res) {
+  res.redirect('sileo://authentication_success?token=BEARER ' + req.cookies['express:sess'] + '&payment_secret=piss')
+})
+
+app.post('/payment/sign_out', function mainHandler (req, res) {
+  req.logOut()
+  const logoutURL = new URL(
+    util.format('https://%s/logout', process.env.auth0URL)
+  )
+
+  const searchString = querystring.stringify({
+    client_id: process.env.auth0clientID
+  })
+
+  logoutURL.search = searchString
+
+  res.redirect(logoutURL)
+  // res.send(JSON.parse('{ "success": true }'))
+})
+
+app.post('/payment/user_info', passport.authenticate('jwt', { session: false }), function mainHandler (req, res) {
+  pino.info(req.user.name)
+  pino.info(req.user.email)
   res.send(JSON.parse('{ "items": [ ], "user": { "name": "pp", "email": "bigpp@pp.com" } }'))
 })
 

@@ -95,3 +95,6 @@ debs/
 
 # Ignore NPM
 package-lock.json
+
+# Ignore Auth0 certificate
+vapas.cer

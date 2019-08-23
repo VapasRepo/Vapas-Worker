@@ -15,14 +15,12 @@ const pino = require('pino')()
 const pinoExpress = require('express-pino-logger')()
 const expressSession = require('cookie-session')
 const util = require('util')
-const url = require('url')
 const querystring = require('querystring')
-const JwtStrategy = require('passport-jwt').Strategy
-const ExtractJwt = require('passport-jwt').ExtractJwt
-const jwt = require('express-jwt')
-const jwtCert = fs.readFileSync(path.resolve(__dirname, './vapas.cer'), 'utf8')
+const jwtCert = fs.readFileSync(path.resolve(__dirname, './vapas.cer'))
 const cookieParser = require('cookie-parser')
 const bodyParser = require('body-parser')
+const JwtStrategy = require('passport-jwt').Strategy
+const ExtractJwt = require('passport-jwt').ExtractJwt
 
 dotenv.config()
 
@@ -47,23 +45,16 @@ var strategy = new Auth0Strategy({
   callbackURL: process.env.URL + '/payment/auth0callback'
 },
 function (accessToken, refreshToken, extraParams, profile, done) {
-  return done(null, profile)
+  const token = extraParams.id_token
+  pino.info(extraParams.id_token)
+  return done(null, profile, token)
 })
 
-const opts = {}
+var opts = {}
 opts.jwtFromRequest = ExtractJwt.fromBodyField('token')
 opts.secretOrKey = jwtCert
-passport.use(new JwtStrategy(opts, function (jwt_payload, done) {
-  User.findOne({ id: jwt_payload.sub }, function (err, user) {
-    if (err) {
-      return done(err, false)
-    }
-    if (user) {
-      return done(null, user)
-    } else {
-      return done(null, false)
-    }
-  })
+passport.use(new JwtStrategy(opts, function (jwtPayload, done) {
+  return done(null, jwtPayload)
 }))
 
 // Crypto setup
@@ -285,13 +276,10 @@ app.get('/payment/auth0callback', (req, res, next) => {
     req.logIn(user, function (err) {
       if (err) { return next(err) }
       req.session.timestamp = new Date()
-      res.redirect('/payment/capturesession')
+      pino.info(info)
+      res.redirect('sileo://authentication_success?token=' + info + '&payment_secret=piss')
     })
   })(req, res, next)
-})
-
-app.get('/payment/capturesession', function mainHandler (req, res) {
-  res.redirect('sileo://authentication_success?token=BEARER ' + req.cookies['express:sess'] + '&payment_secret=piss')
 })
 
 app.post('/payment/sign_out', function mainHandler (req, res) {
@@ -311,9 +299,7 @@ app.post('/payment/sign_out', function mainHandler (req, res) {
 })
 
 app.post('/payment/user_info', passport.authenticate('jwt', { session: false }), function mainHandler (req, res) {
-  pino.info(req.user.name)
-  pino.info(req.user.email)
-  res.send(JSON.parse('{ "items": [ ], "user": { "name": "pp", "email": "bigpp@pp.com" } }'))
+  res.send(JSON.parse('{ "items": [ ], "user": { "name": "' + req.user.nickname + '", "email": "' + req.user.name + '" } }'))
 })
 
 app.post('/payment/package/:packageID/info', function mainHandler (req, res) {

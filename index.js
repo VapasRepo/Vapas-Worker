@@ -50,12 +50,11 @@ function (accessToken, refreshToken, extraParams, profile, done) {
   return done(null, profile)
 })
 
-
 const opts = {}
 opts.jwtFromRequest = ExtractJwt.fromBodyField('token')
 opts.secretOrKey = jwtCert
-passport.use(new JwtStrategy(opts, function(jwt_payload, done) {
-  User.findOne({id: jwt_payload.sub}, function(err, user) {
+passport.use(new JwtStrategy(opts, function (jwt_payload, done) {
+  User.findOne({ id: jwt_payload.sub }, function (err, user) {
     if (err) {
       return done(err, false)
     }
@@ -66,7 +65,6 @@ passport.use(new JwtStrategy(opts, function(jwt_payload, done) {
     }
   })
 }))
-
 
 // Crypto setup
 
@@ -93,7 +91,7 @@ app.use(express.json())
 
 app.use(pinoExpress)
 
-app.use(bodyParser.urlencoded({extended: true}))
+app.use(bodyParser.urlencoded({ extended: true }))
 
 app.use(express.urlencoded({ extended: true }))
 
@@ -135,9 +133,29 @@ const findDocuments = function (db, collectionName, callback) {
 app.use('/', express.static(path.join(__dirname, 'webDepictions')))
 
 // For some odd reason, older cyida versions navigate with (url)/./(path)
+
+/**
 app.get('/./*', function mainHandler (req, res) {
   res.set('location', req.originalUrl.substring(2))
+  pino.info(req.originalUrl.substring(2))
   res.status(308).send()
+})
+*/
+
+app.get('/./Release', function mainHandler (req, res) {
+  res.write('Origin: Please switch to Zebra.\n')
+  res.write('Label: Please switch to Zebra.\n')
+  res.write('Suite: "stable"\n')
+  res.write('Version: "1.0"\n')
+  res.write('Codename: "ios"\n')
+  res.write('Architectures: "iphoneos-arm"\n')
+  res.write('Components: "Components"\n')
+  res.write('Description: "Please switch to Zebra."')
+  res.end()
+})
+
+app.get('/./Packages', function mainHandler (req, res) {
+  res.end()
 })
 
 // Core repo infomation
@@ -256,7 +274,7 @@ app.get('/payment/info', function mainHandler (req, res) {
 
 // Send back that we are authed, add actual code later
 
-app.get('/payment/authenticate', passport.authenticate('auth0', { scope: 'profile openid'}), (req, res) => {
+app.get('/payment/authenticate', passport.authenticate('auth0', { scope: 'profile openid' }), (req, res) => {
   res.redirect('/')
 })
 

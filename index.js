@@ -21,6 +21,7 @@ const cookieParser = require('cookie-parser')
 const bodyParser = require('body-parser')
 const JwtStrategy = require('passport-jwt').Strategy
 const ExtractJwt = require('passport-jwt').ExtractJwt
+const jwt = require('jsonwebtoken')
 
 dotenv.config()
 
@@ -46,7 +47,6 @@ var strategy = new Auth0Strategy({
 },
 function (accessToken, refreshToken, extraParams, profile, done) {
   const token = extraParams.id_token
-  pino.info(extraParams.id_token)
   return done(null, profile, token)
 })
 
@@ -276,7 +276,6 @@ app.get('/payment/auth0callback', (req, res, next) => {
     req.logIn(user, function (err) {
       if (err) { return next(err) }
       req.session.timestamp = new Date()
-      pino.info(info)
       res.redirect('sileo://authentication_success?token=' + info + '&payment_secret=piss')
     })
   })(req, res, next)
@@ -303,7 +302,6 @@ app.post('/payment/user_info', passport.authenticate('jwt', { session: false }),
     let userPackages = ''
     let i = ''
     for (i in docs[0].userData[req.user.sub]) {
-      pino.info(docs[0].userData[req.user.sub][i])
       if (i.toString() === (docs[0].userData[req.user.sub].length - 1).toString()) {
         userPackages += '"' + docs[0].userData[req.user.sub][i] + '"'
       } else {
@@ -315,9 +313,29 @@ app.post('/payment/user_info', passport.authenticate('jwt', { session: false }),
 })
 
 app.post('/payment/package/:packageID/info', function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasContent', function (docs) {
-    var packageData = docs[1].packageData[req.params.packageID]
-    res.send(JSON.parse(`{ "price": "$` + packageData.price + `", "purchased": false, "available": true }`))
+  findDocuments(req.db, 'vapasContent', function (content) {
+    findDocuments(req.db, 'vapasUsers', function (user) {
+      const packageData = content[1].packageData[req.params.packageID]
+      let purchased
+      if (req.body.token !== undefined) {
+        if (packageData.price !== 0) {
+          jwt.verify(req.body.token, jwtCert, function (err, decoded) {
+            if (err) {
+              pino.info(err)
+            }
+            let i
+            for (i in user[0].userData[decoded.sub]) {
+              if (user[0].userData[decoded.sub][i] === req.params.packageID) {
+                purchased = true
+              }
+            }
+          })
+        }
+      } else {
+        purchased = false
+      }
+      res.send(JSON.parse(`{ "price": "$` + packageData.price + `", "purchased": ` + purchased + `, "available": true }`))
+    })
   })
 })
 

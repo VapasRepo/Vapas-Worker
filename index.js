@@ -299,7 +299,19 @@ app.post('/payment/sign_out', function mainHandler (req, res) {
 })
 
 app.post('/payment/user_info', passport.authenticate('jwt', { session: false }), function mainHandler (req, res) {
-  res.send(JSON.parse('{ "items": [ ], "user": { "name": "' + req.user.nickname + '", "email": "' + req.user.name + '" } }'))
+  findDocuments(req.db, 'vapasUsers', function (docs) {
+    let userPackages = ''
+    let i = ''
+    for (i in docs[0].userData[req.user.sub]) {
+      pino.info(docs[0].userData[req.user.sub][i])
+      if (i.toString() === (docs[0].userData[req.user.sub].length - 1).toString()) {
+        userPackages += '"' + docs[0].userData[req.user.sub][i] + '"'
+      } else {
+        userPackages += '"' + docs[0].userData[req.user.sub][i] + '", '
+      }
+    }
+    res.send(JSON.parse('{ "items": [ ' + userPackages + ' ], "user": { "name": "' + req.user.nickname + '", "email": "' + req.user.name + '" } }'))
+  })
 })
 
 app.post('/payment/package/:packageID/info', function mainHandler (req, res) {

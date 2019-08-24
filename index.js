@@ -192,6 +192,10 @@ app.get('/footerIcon.png', function mainHandler (req, res) {
   res.sendFile('./assets/footerIcon.png', { root: './' })
 })
 
+app.get('/icons/*', function mainHandler (req, res) {
+  res.sendFile('./assets/icons/' + req.originalUrl.substring(7) + '.png', { root: './' })
+})
+
 // Open package manager when someone clicks "Add to package manager"
 
 app.get('/cyidaRedirect', function mainHandler (req, res) {

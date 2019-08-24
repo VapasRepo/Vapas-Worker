@@ -121,7 +121,7 @@ const findDocuments = function (db, collectionName, callback) {
 
 // Express Routing
 
-app.use('/', express.static(path.join(__dirname, 'webDepictions')))
+app.use('/', express.static(path.join(__dirname, 'public')))
 
 // For some odd reason, older cyida versions navigate with (url)/./(path)
 

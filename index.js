@@ -1,5 +1,7 @@
-const express = require('express')
 const dotenv = require('dotenv')
+dotenv.config(process.env.stripeApi)
+
+const express = require('express')
 const Sentry = require('@sentry/node')
 const MongoClient = require('mongodb').MongoClient
 const assert = require('assert')
@@ -22,8 +24,8 @@ const bodyParser = require('body-parser')
 const JwtStrategy = require('passport-jwt').Strategy
 const ExtractJwt = require('passport-jwt').ExtractJwt
 const jwt = require('jsonwebtoken')
-
-dotenv.config()
+// const stripe = require('stripe')(process.env.stripeApi)
+const request = require('request')
 
 // Passport.js
 
@@ -39,7 +41,7 @@ const session = {
 
 session.cookie.secure = true
 
-var strategy = new Auth0Strategy({
+passport.use('sileoStrategy', new Auth0Strategy({
   domain: process.env.auth0URL,
   clientID: process.env.auth0clientID,
   clientSecret: process.env.auth0clientSecret,
@@ -49,11 +51,37 @@ function (accessToken, refreshToken, extraParams, profile, done) {
   const token = extraParams.id_token
   return done(null, profile, token)
 })
+)
+passport.use('authStrategy', new Auth0Strategy({
+  domain: process.env.auth0URL,
+  clientID: process.env.auth0clientID,
+  clientSecret: process.env.auth0clientSecret,
+  callbackURL: process.env.URL + '/auth/auth0callback'
+},
+function (accessToken, refreshToken, extraParams, profile, done) {
+  const token = extraParams.id_token
+  return done(null, profile, token)
+}))
+
+const authCookieExtract = function (req) {
+  var token = null
+  if (req && req.cookies) {
+    token = req.cookies.token
+  }
+  return token
+}
 
 var opts = {}
 opts.jwtFromRequest = ExtractJwt.fromBodyField('token')
 opts.secretOrKey = jwtCert
-passport.use(new JwtStrategy(opts, function (jwtPayload, done) {
+passport.use('jwt', new JwtStrategy(opts, function (jwtPayload, done) {
+  return done(null, jwtPayload)
+}))
+
+var opts2 = {}
+opts2.jwtFromRequest = authCookieExtract
+opts2.secretOrKey = jwtCert
+passport.use('jwtCookie', new JwtStrategy(opts2, function (jwtPayload, done) {
   return done(null, jwtPayload)
 }))
 
@@ -76,7 +104,7 @@ const dbClient = new MongoClient(dbURL)
 
 // Load express middleware
 
-app.use(expressMongoDb(dbURL))
+app.use(expressMongoDb(dbURL, { databaseName: 'vapasContent' }))
 
 app.use(express.json())
 
@@ -89,8 +117,6 @@ app.use(express.urlencoded({ extended: true }))
 app.use(expressSession(session))
 
 app.use(cookieParser())
-
-passport.use(strategy)
 
 app.use(passport.initialize())
 
@@ -110,10 +136,10 @@ Sentry.init({ dsn: process.env.SENTRYDSN })
 
 app.use(Sentry.Handlers.requestHandler())
 
-const findDocuments = function (db, collectionName, callback) {
+const findDocuments = function (db, collectionName, search, callback) {
   var dbObject = db.db(dbName)
   const collection = dbObject.collection(collectionName)
-  collection.find({}).toArray(function (err, docs) {
+  collection.find(search).toArray(function (err, docs) {
     assert.strictEqual(err, null)
     callback(docs)
   })
@@ -152,7 +178,7 @@ app.get('/./Packages', function mainHandler (req, res) {
 // Core repo infomation
 
 app.get('/sileo-featured.json', function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasInfomation', function (docs) {
+  findDocuments(req.db, 'vapasInfomation', {}, function (docs) {
     res.send(docs[0].featured)
     dbClient.close()
     res.end()
@@ -160,7 +186,7 @@ app.get('/sileo-featured.json', function mainHandler (req, res) {
 })
 
 app.get('/Packages*', compression(), function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasContent', function (docs) {
+  findDocuments(req.db, 'vapasContent', {}, function (docs) {
     var x, i
     for (x in docs[0].Packages) {
       for (i in docs[0].Packages[x]) {
@@ -174,7 +200,7 @@ app.get('/Packages*', compression(), function mainHandler (req, res) {
 })
 
 app.get('/Release', function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasInfomation', function (docs) {
+  findDocuments(req.db, 'vapasInfomation', {}, function (docs) {
     var i
     for (i in docs[1].Release) {
       res.write(i + ': ' + docs[1].Release[i] + '\n')
@@ -212,7 +238,7 @@ app.get('/depiction/:packageID', function mainHandler (req, res) {
 
 // Native Depictions
 app.get('/sileodepiction/:packageID', function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasContent', function (docs) {
+  findDocuments(req.db, 'vapasContent', {}, function (docs) {
     var screenshots = ''
     var knownIssues = ''
     var changeLog = ''
@@ -269,17 +295,18 @@ app.get('/payment/info', function mainHandler (req, res) {
 
 // Send back that we are authed, add actual code later
 
-app.get('/payment/authenticate', passport.authenticate('auth0', { scope: 'profile openid' }), (req, res) => {
+app.get('/payment/authenticate', passport.authenticate('sileoStrategy', { scope: 'profile openid' }), (req, res) => {
   res.redirect('/')
 })
 
 app.get('/payment/auth0callback', (req, res, next) => {
-  passport.authenticate('auth0', function (err, user, info) {
+  passport.authenticate('sileoStrategy', function (err, user, info) {
     if (err) { return next(err) }
     if (!user) { return res.sendStatus((403)) }
     req.logIn(user, function (err) {
       if (err) { return next(err) }
       req.session.timestamp = new Date()
+      pino.info(info)
       res.redirect('sileo://authentication_success?token=' + info + '&payment_secret=piss')
     })
   })(req, res, next)
@@ -302,14 +329,20 @@ app.post('/payment/sign_out', function mainHandler (req, res) {
 })
 
 app.post('/payment/user_info', passport.authenticate('jwt', { session: false }), function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasUsers', function (docs) {
+  pino.info(req.user.sub)
+  findDocuments(req.db, 'vapasUsers', { id: req.user.sub }, function (docs) {
+    if (!docs) {
+      return false
+    }
+    pino.info(docs[0])
     let userPackages = ''
     let i = ''
-    for (i in docs[0].userData[req.user.sub]) {
-      if (i.toString() === (docs[0].userData[req.user.sub].length - 1).toString()) {
-        userPackages += '"' + docs[0].userData[req.user.sub][i] + '"'
+    pino.info(docs[0].user.packages[0])
+    for (i in docs[0].user.packages) {
+      if (i.toString() === (docs[0].user.packages.length - 1).toString()) {
+        userPackages += '"' + docs[0].user.packages[i] + '"'
       } else {
-        userPackages += '"' + docs[0].userData[req.user.sub][i] + '", '
+        userPackages += '"' + docs[0].user.packages[i] + '", '
       }
     }
     res.send(JSON.parse('{ "items": [ ' + userPackages + ' ], "user": { "name": "' + req.user.nickname + '", "email": "' + req.user.name + '" } }'))
@@ -317,8 +350,8 @@ app.post('/payment/user_info', passport.authenticate('jwt', { session: false }),
 })
 
 app.post('/payment/package/:packageID/info', function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasContent', function (content) {
-    findDocuments(req.db, 'vapasUsers', function (user) {
+  findDocuments(req.db, 'vapasContent', {}, function (content) {
+    findDocuments(req.db, 'vapasUsers', {}, function (user) {
       const packageData = content[1].packageData[req.params.packageID]
       let purchased
       if (req.body.token !== undefined) {
@@ -356,6 +389,86 @@ app.post('/payment/package/:packageID/authorize_download', function mainHandler 
   res.send(JSON.parse(`{ "url": "` + process.env.URL + `/secure-download/?auth=` + hashedData + `" }`))
 })
 
+// Regular login
+
+app.get('/auth/authenticate', (req, res) => {
+  if (!req.query.redirect) {
+    res.send('Redirect required.')
+    res.end()
+    return
+  }
+  res.cookie('authRedirect', req.query.redirect)
+  res.redirect('/auth/authenticate2')
+})
+
+app.get('/auth/authenticate2', passport.authenticate('authStrategy', { scope: 'profile openid' }), (req, res) => {
+  if (!req.query.redirect) {
+    res.send('Redirect required.')
+    res.end()
+    return
+  }
+  res.cookie('authRedirect', req.query.redirect)
+  res.redirect('/')
+})
+
+app.get('/auth/auth0callback', (req, res, next) => {
+  if (!req.cookies.authRedirect) {
+    res.send('Redirect required.')
+    res.end()
+    return
+  }
+  passport.authenticate('authStrategy', function (err, user, info) {
+    if (err) { return next(err) }
+    if (!user) { return res.sendStatus((403)) }
+    req.logIn(user, function (err) {
+      if (err) { return next(err) }
+      req.session.timestamp = new Date()
+      request({ uri: process.env.URL + req.cookies.authRedirect, method: 'POST', json: true, body: { token: info } }, function (err, body) {
+        if (err) {
+          res.send(err)
+          res.end()
+          return
+        }
+        res.redirect(body.body)
+      })
+    })
+  })(req, res, next)
+})
+
+// Stripe Management
+
+app.post('/stripe/register', passport.authenticate('jwt'), function mainHandler (req, res) {
+  res.cookie('token', req.body.token)
+  findDocuments(req.db, 'vapasUsers', { id: req.user.sub }, function (docs) {
+    if (docs[0].user.permissions.developer === true) {
+      res.send('https://connect.stripe.com/express/oauth/authorize?redirect_uri=' + process.env.URL + '/stripe/registerCallback' + '' + '&client_id=' + process.env.stripeID + '&state=' + crypto.randomBytes(32))
+    } else {
+      res.sendStatus(401)
+    }
+  })
+})
+
+app.get('/stripe/registerCallback', passport.authenticate('jwtCookie'), function mainHandler (req, res) {
+  request({ uri: 'https://connect.stripe.com/oauth/token', method: 'POST', json: true, body: { client_secret: process.env.stripeApi, code: req.query.code, grant_type: 'authorization_code' } }, function (err, body) {
+    if (err) {
+      res.send(err)
+      res.end()
+      return
+    }
+    res.send(body.body)
+    findDocuments(req.db, 'vapasUsers', { id: req.user.sub }, function (docs) {
+      // Create stripe object in user document with body.access_token, body.refresh_token, body.stripe_publishable_key, and body.stripe_user_id
+      req.db.collection('vapasUsers').updateOne({ id: req.user.sub }
+        , { $set: { stripe: { accessToken: body.access_token, refreshToken: body.refresh_token, publishableKey: body.stripe_publishable_key, userID: body.stripe_user_id } } }, function (err, result) {
+          if (err) {
+            pino.info(err)
+          }
+        }
+      )
+    })
+  })
+})
+
 // Secure download
 
 app.get('/secure-download/', function mainHandler (req, res) {
@@ -388,7 +501,7 @@ app.get('/secure-download/', function mainHandler (req, res) {
 
 app.get('/debs/:packageID', function mainHandler (req, res) {
   if (req.params.packageID !== '') {
-    findDocuments(req.db, 'vapasContent', function (docs) {
+    findDocuments(req.db, 'vapasContent', {}, function (docs) {
       const packageID = req.params.packageID.substring(0, req.params.packageID.indexOf('_')).toString()
       if (docs[1].packageData[packageID].price.toString() === '0') {
         const hashedDataCipher = crypto.createCipheriv(cryptoAlgorithm, Buffer.from(workerMasterKey, 'hex'), Buffer.from(workerMasterIV, 'hex'))

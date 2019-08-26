@@ -438,7 +438,14 @@ app.get('/auth/auth0callback', (req, res, next) => {
 // Stripe Management
 
 app.post('/stripe/register', passport.authenticate('jwt'), function mainHandler (req, res) {
-  res.send('https://connect.stripe.com/express/oauth/authorize?redirect_uri=' + process.env.URL + '/stripe/registerCallback' + '' + '&client_id=' + process.env.stripeID + '&state=' + crypto.randomBytes(32))
+  res.cookie('token', req.body.token)
+  findDocuments(req.db, 'vapasUsers', { id: req.user.sub }, function (docs) {
+    if (docs[0].user.permissions.developer === true) {
+      res.send('https://connect.stripe.com/express/oauth/authorize?redirect_uri=' + process.env.URL + '/stripe/registerCallback' + '' + '&client_id=' + process.env.stripeID + '&state=' + crypto.randomBytes(32))
+    } else {
+      res.sendStatus(401)
+    }
+  })
 })
 
 app.get('/stripe/registerCallback', passport.authenticate('jwtCookie'), function mainHandler (req, res) {
@@ -449,8 +456,15 @@ app.get('/stripe/registerCallback', passport.authenticate('jwtCookie'), function
       return
     }
     res.send(body.body)
-    findDocuments(req.db, 'vapasContent', { id: req.user.sub }, function (docs) {
+    findDocuments(req.db, 'vapasUsers', { id: req.user.sub }, function (docs) {
       // Create stripe object in user document with body.access_token, body.refresh_token, body.stripe_publishable_key, and body.stripe_user_id
+      req.db.collection('vapasUsers').updateOne({ id: req.user.sub }
+        , { $set: { stripe: { accessToken: body.access_token, refreshToken: body.refresh_token, publishableKey: body.stripe_publishable_key, userID: body.stripe_user_id } } }, function (err, result) {
+          if (err) {
+            pino.info(err)
+          }
+        }
+      )
     })
   })
 })

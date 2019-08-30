@@ -23,7 +23,6 @@ const cookieParser = require('cookie-parser')
 const bodyParser = require('body-parser')
 const JwtStrategy = require('passport-jwt').Strategy
 const ExtractJwt = require('passport-jwt').ExtractJwt
-const jwt = require('jsonwebtoken')
 // const stripe = require('stripe')(process.env.stripeApi)
 const request = require('request')
 

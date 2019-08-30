@@ -23,7 +23,6 @@ const cookieParser = require('cookie-parser')
 const bodyParser = require('body-parser')
 const JwtStrategy = require('passport-jwt').Strategy
 const ExtractJwt = require('passport-jwt').ExtractJwt
-const jwt = require('jsonwebtoken')
 // const stripe = require('stripe')(process.env.stripeApi)
 const request = require('request')
 
@@ -238,11 +237,11 @@ app.get('/depiction/:packageID', function mainHandler (req, res) {
 
 // Native Depictions
 app.get('/sileodepiction/:packageID', function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasContent', {}, function (docs) {
+  findDocuments(req.db, 'vapasPackages', { packageName: req.params.packageID }, function (docs) {
     var screenshots = ''
     var knownIssues = ''
     var changeLog = ''
-    var packageData = docs[1].packageData[req.params.packageID]
+    var packageData = docs[0].package
     var packagePrice = packageData.price.toString()
     if (packagePrice === '0') {
       packagePrice = 'Free'
@@ -349,24 +348,19 @@ app.post('/payment/user_info', passport.authenticate('jwt', { session: false }),
   })
 })
 
-app.post('/payment/package/:packageID/info', function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasContent', {}, function (content) {
-    findDocuments(req.db, 'vapasUsers', {}, function (user) {
-      const packageData = content[1].packageData[req.params.packageID]
+app.post('/payment/package/:packageID/info', passport.authenticate('jwt', { session: false }), function mainHandler (req, res) {
+  findDocuments(req.db, 'vapasContent', { packageName: req.params.packageID }, function (content) {
+    findDocuments(req.db, 'vapasUsers', { id: req.user.sub }, function (user) {
+      const packageData = content[0].package
       let purchased
       if (req.body.token !== undefined) {
         if (packageData.price !== 0) {
-          jwt.verify(req.body.token, jwtCert, function (err, decoded) {
-            if (err) {
-              pino.info(err)
+          let i
+          for (i in user[0].user.packages) {
+            if (user[0].user.packages[i] === req.params.packageID) {
+              purchased = true
             }
-            let i
-            for (i in user[0].userData[decoded.sub]) {
-              if (user[0].userData[decoded.sub][i] === req.params.packageID) {
-                purchased = true
-              }
-            }
-          })
+          }
         }
       } else {
         purchased = false

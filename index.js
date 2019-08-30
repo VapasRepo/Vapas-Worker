@@ -103,7 +103,7 @@ const dbClient = new MongoClient(dbURL)
 
 // Load express middleware
 
-app.use(expressMongoDb(dbURL, { databaseName: 'vapasContent' }))
+app.use(expressMongoDb(dbURL))
 
 app.use(express.json())
 
@@ -177,19 +177,19 @@ app.get('/./Packages', function mainHandler (req, res) {
 // Core repo infomation
 
 app.get('/sileo-featured.json', function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasInfomation', {}, function (docs) {
-    res.send(docs[0].featured)
+  findDocuments(req.db, 'vapasInfomation', { object: 'featured' }, function (docs) {
+    res.send(docs[0].data)
     dbClient.close()
     res.end()
   })
 })
 
 app.get('/Packages*', compression(), function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasContent', {}, function (docs) {
+  findDocuments(req.db, 'vapasInfomation', { object: 'packages' }, function (docs) {
     var x, i
-    for (x in docs[0].Packages) {
-      for (i in docs[0].Packages[x]) {
-        res.write(i + ': ' + docs[0].Packages[x][i] + '\n')
+    for (x in docs[0].data) {
+      for (i in docs[0].data[x]) {
+        res.write(i + ': ' + docs[0].data[x][i] + '\n')
       }
       res.write('\n')
     }
@@ -199,10 +199,10 @@ app.get('/Packages*', compression(), function mainHandler (req, res) {
 })
 
 app.get('/Release', function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasInfomation', {}, function (docs) {
+  findDocuments(req.db, 'vapasInfomation', { object: 'release' }, function (docs) {
     var i
-    for (i in docs[1].Release) {
-      res.write(i + ': ' + docs[1].Release[i] + '\n')
+    for (i in docs[0].data) {
+      res.write(i + ': ' + docs[0].data[i] + '\n')
     }
     dbClient.close()
     res.end()

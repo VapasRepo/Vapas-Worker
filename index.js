@@ -243,7 +243,7 @@ app.get('/depiction/:packageID', function mainHandler (req, res) {
     } else {
       packagePrice = '$' + packagePrice
     }
-    res.write(compiledFunction({ tweakShortDesc: packageData.shortDescription, tweakLongDesc: packageData.longDescription, price: packagePrice, developer: packageData.developer, version: packageData.currentVersion.version.toString(), releaseDate: moment(packageData.currentVersion.dateReleased).format('MMMM Do YYYY') }))
+    res.write(compiledFunction({ tweakShortDesc: packageData.shortDescription, tweakLongDesc: packageData.longDescription, price: packagePrice, developer: packageData.developer, version: packageData.currentVersion.version.toString(), releaseDate: moment(packageData.currentVersion.dateReleased).format('MMMM Do YYYY'), issueList: packageData.knownIssues, changeList: packageData.currentVersion.changeLog, supportName: packageData.supportLink.name, supportLink: packageData.supportLink.url }))
     dbClient.close()
     res.end()
   })

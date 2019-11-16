@@ -149,30 +149,31 @@ const findDocuments = function (db, collectionName, search, callback) {
 
 app.use('/', express.static(path.join(__dirname, 'public')))
 
-// For some odd reason, older cyida versions navigate with (url)/./(path)
-
-/**
-app.get('/./*', function mainHandler (req, res) {
-  res.set('location', req.originalUrl.substring(2))
-  pino.info(req.originalUrl.substring(2))
-  res.status(308).send()
-})
-*/
+// For some odd reason, Cyida navigates with (url)/./(path)
 
 app.get('/./Release', function mainHandler (req, res) {
-  res.write('Origin: Please switch to Zebra or Installer.\n')
-  res.write('Label: Please switch to Zebra or Installer.\n')
-  res.write('Suite: "stable"\n')
-  res.write('Version: "1.0"\n')
-  res.write('Codename: "ios"\n')
-  res.write('Architectures: "iphoneos-arm"\n')
-  res.write('Components: "Components"\n')
-  res.write('Description: "Please switch to Zebra or Installer."')
-  res.end()
+  findDocuments(req.db, 'vapasInfomation', { object: 'release' }, function (docs) {
+    var i
+    for (i in docs[0].data) {
+      res.write(i + ': ' + docs[0].data[i] + '\n')
+    }
+    dbClient.close()
+    res.end()
+  })
 })
 
 app.get('/./Packages', function mainHandler (req, res) {
-  res.end()
+  findDocuments(req.db, 'vapasInfomation', { object: 'packages' }, function (docs) {
+    var x, i
+    for (x in docs[0].data) {
+      for (i in docs[0].data[x]) {
+        res.write(i + ': ' + docs[0].data[x][i] + '\n')
+      }
+      res.write('\n')
+    }
+    dbClient.close()
+    res.end()
+  })
 })
 
 // Core repo infomation
@@ -237,11 +238,11 @@ app.get('/depiction/:packageID', function mainHandler (req, res) {
   findDocuments(req.db, 'vapasPackages', { packageName: req.params.packageID }, function (docs) {
     const compiledFunction = pug.compileFile('./public/depictions/depiction.pug')
     const packageData = docs[0].package
-    let packagePrice = packageData.price
-    if (packagePrice === 0) {
+    let packagePrice
+    if (packageData.price.toString() === '0') {
       packagePrice = 'Free'
     } else {
-      packagePrice = '$' + packagePrice
+      packagePrice = '$' + packageData.price
     }
     res.write(compiledFunction({ tweakShortDesc: packageData.shortDescription, tweakLongDesc: packageData.longDescription, price: packagePrice, developer: packageData.developer, version: packageData.currentVersion.version.toString(), releaseDate: moment(packageData.currentVersion.dateReleased).format('MMMM Do YYYY'), issueList: packageData.knownIssues, changeList: packageData.currentVersion.changeLog, supportName: packageData.supportLink.name, supportLink: packageData.supportLink.url }))
     dbClient.close()
@@ -256,11 +257,11 @@ app.get('/sileodepiction/:packageID', function mainHandler (req, res) {
     var knownIssues = ''
     var changeLog = ''
     var packageData = docs[0].package
-    var packagePrice = packageData.price.toString()
-    if (packagePrice === '0') {
+    let packagePrice
+    if (packageData.price.toString() === '0') {
       packagePrice = 'Free'
     } else {
-      packagePrice = '$' + packagePrice
+      packagePrice = '$' + packageData.price.toString()
     }
     var i
     for (i in packageData.knownIssues) {
@@ -338,7 +339,7 @@ app.post('/payment/sign_out', function mainHandler (req, res) {
   logoutURL.search = searchString
 
   res.redirect(logoutURL)
-  // res.send(JSON.parse('{ "success": true }'))
+  res.send(JSON.parse('{ "success": true }'))
 })
 
 app.post('/payment/user_info', passport.authenticate('jwt', { session: false }), function mainHandler (req, res) {
@@ -507,13 +508,13 @@ app.get('/secure-download/', function mainHandler (req, res) {
 
 // Insecure download
 
-app.get('/debs/:packageID', function mainHandler (req, res) {
+app.get('*/debs/:packageID', function mainHandler (req, res) {
   if (req.params.packageID !== '') {
-    findDocuments(req.db, 'vapasPackages', {}, function (docs) {
-      const packageID = req.params.packageID.substring(0, req.params.packageID.indexOf('_')).toString()
-      if (docs[1].packageData[packageID].price.toString() === '0') {
+    const packageID = req.params.packageID.substring(0, req.params.packageID.indexOf('_')).toString()
+    findDocuments(req.db, 'vapasPackages', { packageName: packageID }, function (docs) {
+      if (docs[0].package.price.toString() === '0') {
         const hashedDataCipher = crypto.createCipheriv(cryptoAlgorithm, Buffer.from(workerMasterKey, 'hex'), Buffer.from(workerMasterIV, 'hex'))
-        let hashedData = hashedDataCipher.update(btoa(JSON.stringify(JSON.parse(`{ "udid":"4e1243bd22c66e76c2ba9eddc1f91394e57f9f83", "packageID": "` + packageID + `", "packageVersion": "` + docs[1].packageData[packageID].currentVersion.versionNumber + `", "expiry": "` + (Date.now() + 20000) + `"}`))), 'base64', 'base64') + hashedDataCipher.final('base64')
+        let hashedData = hashedDataCipher.update(btoa(JSON.stringify(JSON.parse(`{ "udid":"4e1243bd22c66e76c2ba9eddc1f91394e57f9f83", "packageID": "` + packageID + `", "packageVersion": "` + docs[0].package.currentVersion.version + `", "expiry": "` + (Date.now() + 20000) + `"}`))), 'base64', 'base64') + hashedDataCipher.final('base64')
         hashedData = hashedData.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
         res.redirect(process.env.URL + `/secure-download/?auth=` + hashedData)
       } else {

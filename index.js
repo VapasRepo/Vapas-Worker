@@ -25,6 +25,7 @@ const JwtStrategy = require('passport-jwt').Strategy
 const ExtractJwt = require('passport-jwt').ExtractJwt
 // const stripe = require('stripe')(process.env.stripeApi)
 const request = require('request')
+const pug = require('pug')
 
 // Passport.js
 
@@ -233,6 +234,19 @@ app.get('/cyidaRedirect', function mainHandler (req, res) {
 // Legacy Depictions
 
 app.get('/depiction/:packageID', function mainHandler (req, res) {
+  findDocuments(req.db, 'vapasPackages', { packageName: req.params.packageID }, function (docs) {
+    const compiledFunction = pug.compileFile('./public/depictions/depiction.pug')
+    const packageData = docs[0].package
+    let packagePrice = packageData.price
+    if (packagePrice === 0) {
+      packagePrice = 'Free'
+    } else {
+      packagePrice = '$' + packagePrice
+    }
+    res.write(compiledFunction({ tweakShortDesc: packageData.shortDescription, tweakLongDesc: packageData.longDescription, price: packagePrice, developer: packageData.developer, version: packageData.currentVersion.version.toString(), releaseDate: moment(packageData.currentVersion.dateReleased).format('MMMM Do YYYY') }))
+    dbClient.close()
+    res.end()
+  })
 })
 
 // Native Depictions
@@ -349,7 +363,7 @@ app.post('/payment/user_info', passport.authenticate('jwt', { session: false }),
 })
 
 app.post('/payment/package/:packageID/info', passport.authenticate('jwt', { session: false }), function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasContent', { packageName: req.params.packageID }, function (content) {
+  findDocuments(req.db, 'vapasPackages', { packageName: req.params.packageID }, function (content) {
     findDocuments(req.db, 'vapasUsers', { id: req.user.sub }, function (user) {
       const packageData = content[0].package
       let purchased
@@ -495,7 +509,7 @@ app.get('/secure-download/', function mainHandler (req, res) {
 
 app.get('/debs/:packageID', function mainHandler (req, res) {
   if (req.params.packageID !== '') {
-    findDocuments(req.db, 'vapasContent', {}, function (docs) {
+    findDocuments(req.db, 'vapasPackages', {}, function (docs) {
       const packageID = req.params.packageID.substring(0, req.params.packageID.indexOf('_')).toString()
       if (docs[1].packageData[packageID].price.toString() === '0') {
         const hashedDataCipher = crypto.createCipheriv(cryptoAlgorithm, Buffer.from(workerMasterKey, 'hex'), Buffer.from(workerMasterIV, 'hex'))

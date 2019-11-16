@@ -159,14 +159,14 @@ app.get('/./*', function mainHandler (req, res) {
 */
 
 app.get('/./Release', function mainHandler (req, res) {
-  res.write('Origin: Please switch to Zebra.\n')
-  res.write('Label: Please switch to Zebra.\n')
+  res.write('Origin: Please switch to Zebra or Installer.\n')
+  res.write('Label: Please switch to Zebra or Installer.\n')
   res.write('Suite: "stable"\n')
   res.write('Version: "1.0"\n')
   res.write('Codename: "ios"\n')
   res.write('Architectures: "iphoneos-arm"\n')
   res.write('Components: "Components"\n')
-  res.write('Description: "Please switch to Zebra."')
+  res.write('Description: "Please switch to Zebra or Installer."')
   res.end()
 })
 

@@ -13,8 +13,6 @@ const path = require('path')
 const crypto = require('crypto')
 const btoa = require('btoa')
 const atob = require('atob')
-const pino = require('pino')()
-const pinoExpress = require('express-pino-logger')()
 const expressSession = require('cookie-session')
 const util = require('util')
 const querystring = require('querystring')
@@ -26,6 +24,11 @@ const ExtractJwt = require('passport-jwt').ExtractJwt
 // const stripe = require('stripe')(process.env.stripeApi)
 const request = require('request')
 const pug = require('pug')
+const pinoPre = require('pino')
+
+// Setup file logging
+const pino = require('pino')(pinoPre.destination('./logs/vapas_' + Date() + '.log'))
+const pinoExpress = require('express-pino-logger')(pinoPre.destination('./logs/vapas_' + Date() + '.log'))
 
 // Passport.js
 

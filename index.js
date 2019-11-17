@@ -307,8 +307,6 @@ app.get('/payment/info', function mainHandler (req, res) {
   res.send('{"name": "Vapas", "icon": "' + process.env.URL + '/CydiaIcon.png", "description": "Vapas Pay", "authentication_banner": { "message": "Sign into Vapas to purchase and download paid packages.", "button": "Sign in" } }')
 })
 
-// Send back that we are authed, add actual code later
-
 app.get('/payment/authenticate', passport.authenticate('sileoStrategy', { scope: 'profile openid' }), (req, res) => {
   res.redirect('/')
 })

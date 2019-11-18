@@ -392,6 +392,7 @@ app.post('/payment/package/:packageID/purchase', function mainHandler (req, res)
 
 app.post('/payment/package/:packageID/authorize_download', function mainHandler (req, res) {
   // Key expires after 10 (20 for development) seconds from key creation
+  // TODO: Need to add some sort of package price check and user auth to this (Same as path "*/debs/:packageID"?)
   const hashedDataCipher = crypto.createCipheriv(cryptoAlgorithm, Buffer.from(workerMasterKey, 'hex'), Buffer.from(workerMasterIV, 'hex'))
   let hashedData = hashedDataCipher.update(btoa(JSON.stringify(JSON.parse(`{"udid": "` + req.body.udid + `", "packageID": "` + req.params.packageID + `", "packageVersion": "` + req.body.version + `", "expiry": "` + (Date.now() + 20000) + `"}`))), 'base64', 'base64') + hashedDataCipher.final('base64')
   hashedData = hashedData.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')

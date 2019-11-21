@@ -6,7 +6,7 @@ cache:
   directories:
     - node_modules
 install:
-  - yarn add -g codecov
+  - yarn add codecov
 script:
   - istanbul cover ./node_modules/mocha/bin/_mocha --reporter lcovonly -- -R spec
   - codecov

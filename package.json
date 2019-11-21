@@ -1,7 +1,7 @@
 {
   "name": "vapas-worker",
   "version": "1.0.0",
-  "description": "A NodeJS Express worker to generate and deliver infomation for Native Depictions and Web Depictions.",
+  "description": "A NodeJS Express worker to generate and deliver information for Native Depictions and Web Depictions.",
   "main": "index.js",
   "repository": "git@gitlab.com:vapas/vapas-worker.git",
   "author": "Skye Viau <skye.viau@gmail.com>",
@@ -31,6 +31,6 @@
   },
   "scripts": {
     "start": "node index.js",
-    "standard": "standard"
+    "test": "standard"
   }
 }

@@ -1,4 +1,8 @@
 # Vapas Worker
+[![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
+[![OpenHub](https://www.openhub.net/p/vapas-worker/widgets/project_thin_badge?format=gif)](https://www.openhub.net/p/vapas-worker)
+[![codebeat badge](https://codebeat.co/badges/9c8b5ec6-984d-4b30-836b-7003b5c04ffb)](https://codebeat.co/projects/github-com-vapasrepo-vapas-worker-develop)
+[![Build Status](https://travis-ci.com/VapasRepo/Vapas-Worker.svg?branch=develop)](https://travis-ci.com/VapasRepo/Vapas-Worker)
 
 A NodeJS Express worker to generate and deliver information for Native Depictions, Web Depictions, and other miscellaneous uses.  
 

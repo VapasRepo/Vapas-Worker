@@ -1,6 +1,6 @@
 # Vapas Worker
 
-A NodeJS Express worker to generate and deliver infomation for Native Depictions, Web Depictions, and other miscellaneous uses.  
+A NodeJS Express worker to generate and deliver information for Native Depictions, Web Depictions, and other miscellaneous uses.  
 
 ## Running
 

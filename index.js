@@ -136,33 +136,6 @@ app.use(Sentry.Handlers.requestHandler())
 
 app.use('/', express.static(path.join(__dirname, 'public')))
 
-// For some odd reason, Cyida navigates with (url)/./(path)
-
-app.get('/./Release', function mainHandler (req, res) {
-  database.findDocuments(req.db, 'vapasInfomation', { object: 'release' }, function (docs) {
-    var i
-    for (i in docs[0].data) {
-      res.write(i + ': ' + docs[0].data[i] + '\n')
-    }
-    database.dbClient.close()
-    res.end()
-  })
-})
-
-app.get('/./Packages', function mainHandler (req, res) {
-  database.findDocuments(req.db, 'vapasInfomation', { object: 'packages' }, function (docs) {
-    var x, i
-    for (x in docs[0].data) {
-      for (i in docs[0].data[x]) {
-        res.write(i + ': ' + docs[0].data[x][i] + '\n')
-      }
-      res.write('\n')
-    }
-    database.dbClient.close()
-    res.end()
-  })
-})
-
 // Open package manager when someone clicks "Add to package manager"
 
 app.get('/cyidaRedirect', function mainHandler (req, res) {

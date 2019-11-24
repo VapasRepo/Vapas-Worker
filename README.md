@@ -1,5 +1,6 @@
 # Vapas Worker
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
+[![Slack Invite](https://img.shields.io/badge/Join%20Chat-Slack-brightgreen)](https://communityinviter.com/apps/vapasrepo/aaaa)
 [![OpenHub](https://www.openhub.net/p/vapas-worker/widgets/project_thin_badge?format=gif)](https://www.openhub.net/p/vapas-worker)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/8ac5eec156d741a9a03b11e02eff7d34)](https://www.codacy.com/manual/pretzel/Vapas-Worker?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=VapasRepo/Vapas-Worker&amp;utm_campaign=Badge_Grade)
 [![BCH compliance](https://bettercodehub.com/edge/badge/VapasRepo/Vapas-Worker?branch=develop)](https://bettercodehub.com/)

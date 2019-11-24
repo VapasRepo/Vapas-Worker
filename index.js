@@ -404,7 +404,7 @@ app.post('/payment/package/:packageID/purchase', function mainHandler (req, res)
   res.send(JSON.parse(`{ "status": "1", "url": "sileo://payment_completed" }`))
 })
 
-app.post('/payment/package/:packageID/authorize_download', function mainHandler (req, res) {
+app.post('/payment/package/:packageID/authorize_download', passport.authenticate('jwt'), function mainHandler (req, res) {
   findDocuments(req.db, 'vapasPackages', { packageName: req.params.packageID }, function (docs) {
     // Key expires after 10 (20 for development) seconds from key creation
     const hashedDataCipher = crypto.createCipheriv(cryptoAlgorithm, Buffer.from(workerMasterKey, 'hex'), Buffer.from(workerMasterIV, 'hex'))
@@ -413,15 +413,12 @@ app.post('/payment/package/:packageID/authorize_download', function mainHandler 
     if (docs[0].package.price.toString() === '0') {
       res.send(JSON.parse(`{ "url": "` + process.env.URL + `/secure-download/?auth=` + hashedData + `" }`))
     } else {
-      if (req.body.token !== '') {
-        findDocuments(req.db, 'vapasUsers', { id: req.body.token }, function (userDocs) {
-          if (userDocs[0].user.packages.includes(req.params.packageID)) {
-            res.send(JSON.parse(`{ "url": "` + process.env.URL + `/secure-download/?auth=` + hashedData + `" }`))
-          }
-        })
-      }
+      findDocuments(req.db, 'vapasUsers', { id: req.user.sub }, function (userDocs) {
+        if (userDocs[0].user.packages.includes(req.params.packageID)) {
+          res.send(JSON.parse(`{ "url": "` + process.env.URL + `/secure-download/?auth=` + hashedData + `" }`))
+        }
+      })
     }
-
   })
 })
 

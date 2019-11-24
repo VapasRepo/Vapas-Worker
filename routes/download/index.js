@@ -10,7 +10,7 @@ const logging = require('../../modules/logging.js')
 // Secure download
 
 routes.get('/secure-download/', function mainHandler (req, res) {
-  if (req.query.auth != null) {
+  if (req.query.auth !== null) {
     var authKey = req.query.auth.replace('-', '+').replace('_', '/')
     while (authKey.length % 4) { authKey += '=' }
     const hashedDataDecipher = crypto.createDecipheriv(keys.cryptoAlgorithm, Buffer.from(keys.workerMasterKey, 'hex'), Buffer.from(keys.workerMasterIV, 'hex'))

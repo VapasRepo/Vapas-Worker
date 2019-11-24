@@ -405,13 +405,24 @@ app.post('/payment/package/:packageID/purchase', function mainHandler (req, res)
 })
 
 app.post('/payment/package/:packageID/authorize_download', function mainHandler (req, res) {
-  // Key expires after 10 (20 for development) seconds from key creation
-  // TODO: Need to add some sort of package price check and user auth to this (Same as path "*/debs/:packageID"?)
-  const hashedDataCipher = crypto.createCipheriv(cryptoAlgorithm, Buffer.from(workerMasterKey, 'hex'), Buffer.from(workerMasterIV, 'hex'))
-  let hashedData = hashedDataCipher.update(btoa(JSON.stringify(JSON.parse(`{"udid": "` + req.body.udid + `", "packageID": "` + req.params.packageID + `", "packageVersion": "` + req.body.version + `", "expiry": "` + (Date.now() + 20000) + `"}`))), 'base64', 'base64') + hashedDataCipher.final('base64')
-  hashedData = hashedData.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+  findDocuments(req.db, 'vapasPackages', { packageName: req.params.packageID }, function (docs) {
+    // Key expires after 10 (20 for development) seconds from key creation
+    const hashedDataCipher = crypto.createCipheriv(cryptoAlgorithm, Buffer.from(workerMasterKey, 'hex'), Buffer.from(workerMasterIV, 'hex'))
+    let hashedData = hashedDataCipher.update(btoa(JSON.stringify(JSON.parse(`{"udid": "` + req.body.udid + `", "packageID": "` + req.params.packageID + `", "packageVersion": "` + req.body.version + `", "expiry": "` + (Date.now() + 20000) + `"}`))), 'base64', 'base64') + hashedDataCipher.final('base64')
+    hashedData = hashedData.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+    if (docs[0].package.price.toString() === '0') {
+      res.send(JSON.parse(`{ "url": "` + process.env.URL + `/secure-download/?auth=` + hashedData + `" }`))
+    } else {
+      if (req.body.token !== '') {
+        findDocuments(req.db, 'vapasUsers', { id: req.body.token }, function (userDocs) {
+          if (userDocs[0].user.packages.includes(req.params.packageID)) {
+            res.send(JSON.parse(`{ "url": "` + process.env.URL + `/secure-download/?auth=` + hashedData + `" }`))
+          }
+        })
+      }
+    }
 
-  res.send(JSON.parse(`{ "url": "` + process.env.URL + `/secure-download/?auth=` + hashedData + `" }`))
+  })
 })
 
 // Regular login

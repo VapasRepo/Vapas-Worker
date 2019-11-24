@@ -131,7 +131,7 @@ passport.deserializeUser((user, done) => {
 
 // Load routing
 
-const moduleRoutes = require('./modules/coreInfo')
+const moduleRoutes = require('./routes/coreInfo')
 
 app.use('/', moduleRoutes)
 

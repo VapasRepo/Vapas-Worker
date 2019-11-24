@@ -1,7 +1,6 @@
 const routes = require('express').Router()
-const index = require('../../index')
 const compression = require('compression')
-const database = require('../database.js')
+const database = require('../../modules/database.js')
 
 // Core repo information
 

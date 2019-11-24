@@ -1,11 +1,7 @@
 const dotenv = require('dotenv')
 dotenv.config(process.env.stripeApi)
-
 const express = require('express')
 const Sentry = require('@sentry/node')
-const MongoClient = require('mongodb').MongoClient
-const assert = require('assert')
-const compression = require('compression')
 const expressMongoDb = require('express-mongo-db')
 const moment = require('moment')
 const fs = require('fs')
@@ -25,6 +21,8 @@ const ExtractJwt = require('passport-jwt').ExtractJwt
 const request = require('request')
 const pug = require('pug')
 const pinoPre = require('pino')
+
+const database = require('./modules/database.js')
 
 // Setup file logging
 const pino = require('pino')(pinoPre.destination('./logs/vapas_' + Date() + '.log'))
@@ -102,8 +100,6 @@ const port = 1406
 // MongoDB Setup
 
 const dbURL = process.env.dbURL
-const dbName = 'vapasContent'
-const dbClient = new MongoClient(dbURL)
 
 // Load express middleware
 
@@ -133,20 +129,17 @@ passport.deserializeUser((user, done) => {
   done(null, user)
 })
 
+// Load routing
+
+const moduleRoutes = require('./modules/coreInfo')
+
+app.use('/', moduleRoutes)
+
 // Sentry setup
 
 Sentry.init({ dsn: process.env.SENTRYDSN })
 
 app.use(Sentry.Handlers.requestHandler())
-
-const findDocuments = function (db, collectionName, search, callback) {
-  var dbObject = db.db(dbName)
-  const collection = dbObject.collection(collectionName)
-  collection.find(search).toArray(function (err, docs) {
-    assert.strictEqual(err, null)
-    callback(docs)
-  })
-}
 
 // Express Routing
 
@@ -155,18 +148,18 @@ app.use('/', express.static(path.join(__dirname, 'public')))
 // For some odd reason, Cyida navigates with (url)/./(path)
 
 app.get('/./Release', function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasInfomation', { object: 'release' }, function (docs) {
+  database.findDocuments(req.db, 'vapasInfomation', { object: 'release' }, function (docs) {
     var i
     for (i in docs[0].data) {
       res.write(i + ': ' + docs[0].data[i] + '\n')
     }
-    dbClient.close()
+    database.dbClient.close()
     res.end()
   })
 })
 
 app.get('/./Packages', function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasInfomation', { object: 'packages' }, function (docs) {
+  database.findDocuments(req.db, 'vapasInfomation', { object: 'packages' }, function (docs) {
     var x, i
     for (x in docs[0].data) {
       for (i in docs[0].data[x]) {
@@ -174,71 +167,9 @@ app.get('/./Packages', function mainHandler (req, res) {
       }
       res.write('\n')
     }
-    dbClient.close()
+    database.dbClient.close()
     res.end()
   })
-})
-
-// Core repo infomation
-
-app.get('/sileo-featured.json', function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasInfomation', { object: 'featured' }, function (docs) {
-    res.send(docs[0].data)
-    dbClient.close()
-    res.end()
-  })
-})
-
-app.get('/Packages*', compression(), function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasPackages', { }, function (docs) {
-    let i
-    for (i in docs) {
-      const packageData = docs[i].package
-      res.write('Package: ' + docs[i].packageName + '\n')
-      res.write('Version: ' + packageData.currentVersion.version + '\n')
-      res.write('Section: ' + packageData.section + '\n')
-      res.write('Maintainer: ' + packageData.developer + '\n')
-      res.write('Depends: ' + packageData.depends + '\n')
-      res.write('Architecture: iphoneos-arm\n')
-      res.write('Filename: /debs/' + docs[i].packageName + '_' + packageData.currentVersion.version + '_iphoneos-arm.deb\n')
-      res.write('Size: ' + packageData.currentVersion.size + '\n')
-      res.write('SHA256: ' + packageData.currentVersion.SHA256 + '\n')
-      res.write('Description: ' + packageData.shortDescription + '\n')
-      res.write('Name: ' + packageData.name + '\n')
-      res.write('Author: ' + packageData.developer + '\n')
-      res.write('Depiction: ' + process.env.URL + '/depiction/' + docs[i].packageName + '\n')
-      res.write('SileoDepiction: ' + process.env.URL + '/sileodepiction/' + docs[i].packageName + '\n')
-      if (packageData.price.toString() !== '0') {
-        res.write('Tag: cydia::commercial\n')
-      }
-      res.write('Icon: ' + packageData.icon + '\n\n')
-    }
-    dbClient.close()
-    res.end()
-  })
-})
-
-app.get('/Release', function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasInfomation', { object: 'release' }, function (docs) {
-    let i
-    for (i in docs[0].data) {
-      res.write(i + ': ' + docs[0].data[i] + '\n')
-    }
-    dbClient.close()
-    res.end()
-  })
-})
-
-app.get('/CydiaIcon.png', function mainHandler (req, res) {
-  res.sendFile('./assets/cyidaIcon.png', { root: './' })
-})
-
-app.get('/footerIcon.png', function mainHandler (req, res) {
-  res.sendFile('./assets/footerIcon.png', { root: './' })
-})
-
-app.get('/icons/*', function mainHandler (req, res) {
-  res.sendFile('./assets/icons/' + req.originalUrl.substring(7) + '.png', { root: './' })
 })
 
 // Open package manager when someone clicks "Add to package manager"
@@ -253,7 +184,7 @@ app.get('/cyidaRedirect', function mainHandler (req, res) {
 // Legacy Depictions
 
 app.get('/depiction/:packageID', function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasPackages', { packageName: req.params.packageID }, function (docs) {
+  database.findDocuments(req.db, 'vapasPackages', { packageName: req.params.packageID }, function (docs) {
     const compiledFunction = pug.compileFile('./public/depictions/depiction.pug')
     const packageData = docs[0].package
     let packagePrice
@@ -263,14 +194,14 @@ app.get('/depiction/:packageID', function mainHandler (req, res) {
       packagePrice = '$' + packageData.price
     }
     res.write(compiledFunction({ tweakShortDesc: packageData.shortDescription, tweakLongDesc: packageData.longDescription, price: packagePrice, developer: packageData.developer, version: packageData.currentVersion.version.toString(), releaseDate: moment(packageData.currentVersion.dateReleased).format('MMMM Do YYYY'), issueList: packageData.knownIssues, changeList: packageData.currentVersion.changeLog, supportName: packageData.supportLink.name, supportLink: packageData.supportLink.url }))
-    dbClient.close()
+    database.dbClient.close()
     res.end()
   })
 })
 
 // Native Depictions
 app.get('/sileodepiction/:packageID', function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasPackages', { packageName: req.params.packageID }, function (docs) {
+  database.findDocuments(req.db, 'vapasPackages', { packageName: req.params.packageID }, function (docs) {
     var screenshots = ''
     var knownIssues = ''
     var changeLog = ''
@@ -305,7 +236,7 @@ app.get('/sileodepiction/:packageID', function mainHandler (req, res) {
     }
     var sileoData = `{ "minVersion":"0.1", "headerImage":"` + packageData.headerImage + `", "tintColor": "` + packageData.tint + `", "tabs": [ { "tabname": "Details", "views": [ { "title": "` + packageData.shortDescription + `", "useBoldText": true, "useBottomMargin": false, "class": "DepictionSubheaderView" }, { "markdown": "` + packageData.longDescription + `", "useSpacing": true, "class": "DepictionMarkdownView" }, { "class": "DepictionSeparatorView" }, { "title": "Screenshots", "class": "DepictionHeaderView" }, { "itemCornerRadius": 6, "itemSize": "{160, 275.41333333333336}", "screenshots": [ ` + screenshots + ` ], "ipad": { "itemCornerRadius": 9, "itemSize": "{320, 550.8266666666667}", "screenshots": [ ` + screenshots + ` ], "class": "DepictionScreenshotView" }, "class": "DepictionScreenshotsView" }, { "class": "DepictionSeparatorView" }, { "title": "Known Issues", "class": "DepictionHeaderView" }, { "markdown": "` + knownIssues + `", "useSpacing": true, "class": "DepictionMarkdownView" }, { "class": "DepictionSeparatorView" }, { "title": "Package Information", "class": "DepictionHeaderView" }, { "title": "Version", "text": "` + packageData.currentVersion.version + `", "class": "DepictionTableTextView" }, { "title": "Released", "text": "` + moment(packageData.currentVersion.dateReleased).format('MMMM Do YYYY') + `", "class": "DepictionTableTextView" }, { "title": "Price", "text": "` + packagePrice + `", "class": "DepictionTableTextView" }, { "class": "DepictionSeparatorView" }, { "title": "Developer Infomation", "class": "DepictionHeaderView" },{ "class": "DepictionStackView" }, { "title": "Developer", "text": "` + packageData.developer + `", "class": "DepictionTableTextView" }, { "title": "Support (` + packageData.supportLink.name + `)", "action": "` + packageData.supportLink.url + `", "class": "DepictionTableButtonView" }, { "class": "DepictionSeparatorView" }, { "spacing": 10, "class": "DepictionSpacerView" }, {"URL": "` + process.env.URL + `/footerIcon.png", "width": 125, "height": 67.5, "cornerRadius": 0, "alignment": 1, "class": "DepictionImageView" } ], "class": "DepictionStackView" }, { "tabname": "Changelog", "views": [{ "title": "Version ` + packageData.currentVersion.version + `", "useBoldText": true, "useBottomMargin": true, "class": "DepictionSubheaderView" }, { "markdown": "` + changeLog + `", "useSpacing": false, "class": "DepictionMarkdownView" } ], "class": "DepictionStackView" } ], "class": "DepictionTabView" }`
     res.send(JSON.parse(sileoData))
-    dbClient.close()
+    database.dbClient.close()
     res.end()
   })
 })
@@ -359,7 +290,7 @@ app.post('/payment/sign_out', function mainHandler (req, res) {
 
 app.post('/payment/user_info', passport.authenticate('jwt', { session: false }), function mainHandler (req, res) {
   pino.info(req.user.sub)
-  findDocuments(req.db, 'vapasUsers', { id: req.user.sub }, function (docs) {
+  database.findDocuments(req.db, 'vapasUsers', { id: req.user.sub }, function (docs) {
     if (!docs) {
       return false
     }
@@ -379,8 +310,8 @@ app.post('/payment/user_info', passport.authenticate('jwt', { session: false }),
 })
 
 app.post('/payment/package/:packageID/info', passport.authenticate('jwt', { session: false }), function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasPackages', { packageName: req.params.packageID }, function (content) {
-    findDocuments(req.db, 'vapasUsers', { id: req.user.sub }, function (user) {
+  database.findDocuments(req.db, 'vapasPackages', { packageName: req.params.packageID }, function (content) {
+    database.findDocuments(req.db, 'vapasUsers', { id: req.user.sub }, function (user) {
       const packageData = content[0].package
       let purchased
       if (req.body.token !== undefined) {
@@ -405,7 +336,7 @@ app.post('/payment/package/:packageID/purchase', function mainHandler (req, res)
 })
 
 app.post('/payment/package/:packageID/authorize_download', passport.authenticate('jwt'), function mainHandler (req, res) {
-  findDocuments(req.db, 'vapasPackages', { packageName: req.params.packageID }, function (docs) {
+  database.findDocuments(req.db, 'vapasPackages', { packageName: req.params.packageID }, function (docs) {
     // Key expires after 10 (20 for development) seconds from key creation
     const hashedDataCipher = crypto.createCipheriv(cryptoAlgorithm, Buffer.from(workerMasterKey, 'hex'), Buffer.from(workerMasterIV, 'hex'))
     let hashedData = hashedDataCipher.update(btoa(JSON.stringify(JSON.parse(`{"udid": "` + req.body.udid + `", "packageID": "` + req.params.packageID + `", "packageVersion": "` + req.body.version + `", "expiry": "` + (Date.now() + 20000) + `"}`))), 'base64', 'base64') + hashedDataCipher.final('base64')
@@ -413,7 +344,7 @@ app.post('/payment/package/:packageID/authorize_download', passport.authenticate
     if (docs[0].package.price.toString() === '0') {
       res.send(JSON.parse(`{ "url": "` + process.env.URL + `/secure-download/?auth=` + hashedData + `" }`))
     } else {
-      findDocuments(req.db, 'vapasUsers', { id: req.user.sub }, function (userDocs) {
+      database.findDocuments(req.db, 'vapasUsers', { id: req.user.sub }, function (userDocs) {
         if (userDocs[0].user.packages.includes(req.params.packageID)) {
           res.send(JSON.parse(`{ "url": "` + process.env.URL + `/secure-download/?auth=` + hashedData + `" }`))
         }
@@ -472,7 +403,7 @@ app.get('/auth/auth0callback', (req, res, next) => {
 
 app.post('/stripe/register', passport.authenticate('jwt'), function mainHandler (req, res) {
   res.cookie('token', req.body.token)
-  findDocuments(req.db, 'vapasUsers', { id: req.user.sub }, function (docs) {
+  database.findDocuments(req.db, 'vapasUsers', { id: req.user.sub }, function (docs) {
     if (docs[0].user.permissions.developer === true) {
       res.send('https://connect.stripe.com/express/oauth/authorize?redirect_uri=' + process.env.URL + '/stripe/registerCallback' + '' + '&client_id=' + process.env.stripeID + '&state=' + crypto.randomBytes(32))
     } else {
@@ -489,7 +420,7 @@ app.get('/stripe/registerCallback', passport.authenticate('jwtCookie'), function
       return
     }
     res.send(body.body)
-    findDocuments(req.db, 'vapasUsers', { id: req.user.sub }, function (docs) {
+    database.findDocuments(req.db, 'vapasUsers', { id: req.user.sub }, function (docs) {
       // Create stripe object in user document with body.access_token, body.refresh_token, body.stripe_publishable_key, and body.stripe_user_id
       req.db.collection('vapasUsers').updateOne({ id: req.user.sub }
         , { $set: { stripe: { accessToken: body.access_token, refreshToken: body.refresh_token, publishableKey: body.stripe_publishable_key, userID: body.stripe_user_id } } }, function (err, result) {
@@ -535,7 +466,7 @@ app.get('/secure-download/', function mainHandler (req, res) {
 app.get('*/debs/:packageID', function mainHandler (req, res) {
   if (req.params.packageID !== '') {
     const packageID = req.params.packageID.substring(0, req.params.packageID.indexOf('_')).toString()
-    findDocuments(req.db, 'vapasPackages', { packageName: packageID }, function (docs) {
+    database.findDocuments(req.db, 'vapasPackages', { packageName: packageID }, function (docs) {
       if (docs[0].package.price.toString() === '0') {
         const hashedDataCipher = crypto.createCipheriv(cryptoAlgorithm, Buffer.from(workerMasterKey, 'hex'), Buffer.from(workerMasterIV, 'hex'))
         let hashedData = hashedDataCipher.update(btoa(JSON.stringify(JSON.parse(`{ "udid":"4e1243bd22c66e76c2ba9eddc1f91394e57f9f83", "packageID": "` + packageID + `", "packageVersion": "` + docs[0].package.currentVersion.version + `", "expiry": "` + (Date.now() + 20000) + `"}`))), 'base64', 'base64') + hashedDataCipher.final('base64')

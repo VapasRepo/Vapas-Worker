@@ -83,13 +83,11 @@ routes.post('/payment/package/:packageID/info', passport.passport.authenticate('
     database.findDocuments(req.db, 'vapasUsers', { id: req.user.sub }, function (user) {
       const packageData = content[0].package
       let purchased
-      if (req.body.token !== undefined) {
-        if (packageData.price !== 0) {
-          let i
-          for (i in user[0].user.packages) {
-            if (user[0].user.packages[i] === req.params.packageID) {
-              purchased = true
-            }
+      if (req.body.token !== undefined && packageData.price !== 0) {
+        let i
+        for (i in user[0].user.packages) {
+          if (user[0].user.packages[i] === req.params.packageID) {
+            purchased = true
           }
         }
       } else {

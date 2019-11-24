@@ -8,7 +8,6 @@ const fs = require('fs')
 const path = require('path')
 const crypto = require('crypto')
 const btoa = require('btoa')
-const atob = require('atob')
 const expressSession = require('cookie-session')
 const util = require('util')
 const querystring = require('querystring')
@@ -20,13 +19,10 @@ const ExtractJwt = require('passport-jwt').ExtractJwt
 // const stripe = require('stripe')(process.env.stripeApi)
 const request = require('request')
 const pug = require('pug')
-const pinoPre = require('pino')
 
 const database = require('./modules/database.js')
-
-// Setup file logging
-const pino = require('pino')(pinoPre.destination('./logs/vapas_' + Date() + '.log'))
-const pinoExpress = require('express-pino-logger')(pinoPre.destination('./logs/vapas_' + Date() + '.log'))
+const keys = require('./modules/keys.js')
+const logging = require('./modules/logging.js')
 
 // Passport.js
 
@@ -86,13 +82,6 @@ passport.use('jwtCookie', new JwtStrategy(opts2, function (jwtPayload, done) {
   return done(null, jwtPayload)
 }))
 
-// Crypto setup
-
-const cryptoAlgorithm = 'aes-256-cbc'
-// FIXME: God this is a bad idea, change this
-const workerMasterKey = crypto.randomBytes(32)
-const workerMasterIV = crypto.randomBytes(16)
-
 const app = express()
 
 const port = 1406
@@ -107,7 +96,7 @@ app.use(expressMongoDb(dbURL))
 
 app.use(express.json())
 
-app.use(pinoExpress)
+app.use(logging.pinoExpress)
 
 app.use(bodyParser.urlencoded({ extended: true }))
 
@@ -131,9 +120,11 @@ passport.deserializeUser((user, done) => {
 
 // Load routing
 
-const moduleRoutes = require('./routes/coreInfo')
+const coreInfoRoute = require('./routes/coreInfo')
+const downloadRoute = require('./routes/download')
 
-app.use('/', moduleRoutes)
+app.use('/', coreInfoRoute)
+app.use('/', downloadRoute)
 
 // Sentry setup
 
@@ -267,7 +258,7 @@ app.get('/payment/auth0callback', (req, res, next) => {
     req.logIn(user, function (err) {
       if (err) { return next(err) }
       req.session.timestamp = new Date()
-      pino.info(info)
+      logging.pino.info(info)
       res.redirect('sileo://authentication_success?token=' + info + '&payment_secret=piss')
     })
   })(req, res, next)
@@ -289,15 +280,15 @@ app.post('/payment/sign_out', function mainHandler (req, res) {
 })
 
 app.post('/payment/user_info', passport.authenticate('jwt', { session: false }), function mainHandler (req, res) {
-  pino.info(req.user.sub)
+  logging.pino.info(req.user.sub)
   database.findDocuments(req.db, 'vapasUsers', { id: req.user.sub }, function (docs) {
     if (!docs) {
       return false
     }
-    pino.info(docs[0])
+    logging.pino.info(docs[0])
     let userPackages = ''
     let i = ''
-    pino.info(docs[0].user.packages[0])
+    logging.pino.info(docs[0].user.packages[0])
     for (i in docs[0].user.packages) {
       if (i.toString() === (docs[0].user.packages.length - 1).toString()) {
         userPackages += '"' + docs[0].user.packages[i] + '"'
@@ -338,7 +329,7 @@ app.post('/payment/package/:packageID/purchase', function mainHandler (req, res)
 app.post('/payment/package/:packageID/authorize_download', passport.authenticate('jwt'), function mainHandler (req, res) {
   database.findDocuments(req.db, 'vapasPackages', { packageName: req.params.packageID }, function (docs) {
     // Key expires after 10 (20 for development) seconds from key creation
-    const hashedDataCipher = crypto.createCipheriv(cryptoAlgorithm, Buffer.from(workerMasterKey, 'hex'), Buffer.from(workerMasterIV, 'hex'))
+    const hashedDataCipher = crypto.createCipheriv(keys.cryptoAlgorithm, Buffer.from(keys.workerMasterKey, 'hex'), Buffer.from(keys.workerMasterIV, 'hex'))
     let hashedData = hashedDataCipher.update(btoa(JSON.stringify(JSON.parse(`{"udid": "` + req.body.udid + `", "packageID": "` + req.params.packageID + `", "packageVersion": "` + req.body.version + `", "expiry": "` + (Date.now() + 20000) + `"}`))), 'base64', 'base64') + hashedDataCipher.final('base64')
     hashedData = hashedData.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
     if (docs[0].package.price.toString() === '0') {
@@ -425,7 +416,7 @@ app.get('/stripe/registerCallback', passport.authenticate('jwtCookie'), function
       req.db.collection('vapasUsers').updateOne({ id: req.user.sub }
         , { $set: { stripe: { accessToken: body.access_token, refreshToken: body.refresh_token, publishableKey: body.stripe_publishable_key, userID: body.stripe_user_id } } }, function (err, result) {
           if (err) {
-            pino.info(err)
+            logging.pino.info(err)
           }
         }
       )
@@ -433,57 +424,6 @@ app.get('/stripe/registerCallback', passport.authenticate('jwtCookie'), function
   })
 })
 
-// Secure download
-
-app.get('/secure-download/', function mainHandler (req, res) {
-  if (req.query.auth != null) {
-    var authKey = req.query.auth.replace('-', '+').replace('_', '/')
-    while (authKey.length % 4) { authKey += '=' }
-    const hashedDataDecipher = crypto.createDecipheriv(cryptoAlgorithm, Buffer.from(workerMasterKey, 'hex'), Buffer.from(workerMasterIV, 'hex'))
-    let hashedData
-    try {
-      hashedData = JSON.parse(atob(hashedDataDecipher.update(authKey, 'base64', 'base64') + hashedDataDecipher.final('base64')))
-    } catch (err) {
-      res.status(403).send()
-      res.end()
-      pino.warn('Blocked key error')
-    }
-    if (hashedData.expiry >= Date.now()) {
-      res.download(`./debs/` + hashedData.packageID + '_' + hashedData.packageVersion + `_iphoneos-arm.deb`)
-    } else {
-      res.status(403).send()
-      res.end()
-      pino.warn('Blocked download attempt from udid ' + hashedData.udid + ' (Link expired)')
-    }
-  } else {
-    res.status(403).send()
-    res.end()
-  }
-})
-
-// Insecure download
-
-app.get('*/debs/:packageID', function mainHandler (req, res) {
-  if (req.params.packageID !== '') {
-    const packageID = req.params.packageID.substring(0, req.params.packageID.indexOf('_')).toString()
-    database.findDocuments(req.db, 'vapasPackages', { packageName: packageID }, function (docs) {
-      if (docs[0].package.price.toString() === '0') {
-        const hashedDataCipher = crypto.createCipheriv(cryptoAlgorithm, Buffer.from(workerMasterKey, 'hex'), Buffer.from(workerMasterIV, 'hex'))
-        let hashedData = hashedDataCipher.update(btoa(JSON.stringify(JSON.parse(`{ "udid":"4e1243bd22c66e76c2ba9eddc1f91394e57f9f83", "packageID": "` + packageID + `", "packageVersion": "` + docs[0].package.currentVersion.version + `", "expiry": "` + (Date.now() + 20000) + `"}`))), 'base64', 'base64') + hashedDataCipher.final('base64')
-        hashedData = hashedData.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
-        res.redirect(process.env.URL + `/secure-download/?auth=` + hashedData)
-      } else {
-        // TODO: Check if the user is logged in and then check if they own the package
-        res.status(403).send()
-        res.end()
-      }
-    })
-  } else {
-    res.status(404).send()
-    res.end()
-  }
-})
-
 app.use(Sentry.Handlers.errorHandler())
 
-app.listen(port, () => pino.info(`Listening on port ${port}`))
+app.listen(port, () => logging.pino.info(`Listening on port ${port}`))

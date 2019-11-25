@@ -8,8 +8,6 @@ const expressSession = require('cookie-session')
 const cookieParser = require('cookie-parser')
 const bodyParser = require('body-parser')
 
-// const stripe = require('stripe')(process.env.stripeApi)
-
 const logging = require('./modules/logging.js')
 const passport = require('./modules/passport.js')
 

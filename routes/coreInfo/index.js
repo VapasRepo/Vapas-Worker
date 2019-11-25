@@ -1,5 +1,4 @@
 const routes = require('express').Router()
-const compression = require('compression')
 
 const database = require('../../modules/database.js')
 
@@ -13,7 +12,7 @@ routes.get('/sileo-featured.json', function mainHandler (req, res) {
   })
 })
 
-routes.get('/Packages*', compression(), function mainHandler (req, res) {
+routes.get('/Packages', function mainHandler (req, res) {
   database.findDocuments(req.db, 'vapasPackages', { }, function (docs) {
     let i
     for (i in docs) {

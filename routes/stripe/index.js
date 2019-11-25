@@ -1,6 +1,7 @@
 const routes = require('express').Router()
 const crypto = require('crypto')
 const request = require('request')
+// const stripe = require('stripe')(process.env.stripeApi)
 
 const database = require('../../modules/database.js')
 const passport = require('../../modules/passport.js')

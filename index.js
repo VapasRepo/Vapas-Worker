@@ -53,6 +53,7 @@ const depictionRoute = require('./routes/depictions')
 const cyidaRoute = require('./routes/cyida')
 const paymentHandlerRoute = require('./routes/paymentHandler')
 const stripeRoute = require('./routes/stripe')
+const authRoute = require('./routes/auth')
 
 app.use('/', coreInfoRoute)
 app.use('/', downloadRoute)
@@ -60,6 +61,7 @@ app.use('/', depictionRoute)
 app.use('/', cyidaRoute)
 app.use('/', paymentHandlerRoute)
 app.use('/', stripeRoute)
+app.use('/', authRoute)
 
 app.use('/', express.static(path.join(__dirname, 'public')))
 

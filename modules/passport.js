@@ -4,7 +4,7 @@ const fs = require('fs')
 const crypto = require('crypto')
 const path = require('path')
 
-const jwtCert = fs.readFileSync(path.join(__dirname, './vapas.cer'))
+const jwtCert = fs.readFileSync(path.join(__dirname, '../vapas.cer'))
 
 module.exports.Auth0Strategy = require('passport-auth0')
 module.exports.passport = require('passport')

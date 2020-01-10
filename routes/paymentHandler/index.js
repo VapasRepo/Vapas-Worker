@@ -3,6 +3,7 @@ const btoa = require('btoa')
 const util = require('util')
 const querystring = require('querystring')
 const crypto = require('crypto')
+const stripe = require('stripe')(process.env.stripeApi)
 
 const database = require('../../modules/database.js')
 const logging = require('../../modules/logging.js')
@@ -21,7 +22,7 @@ routes.get('/payment', function mainHandler (req, res) {
 })
 
 routes.get('/payment/info', function mainHandler (req, res) {
-  res.send('{"name": "Vapas", "icon": "' + process.env.URL + '/CydiaIcon.png", "description": "Vapas Pay", "authentication_banner": { "message": "Sign into Vapas to purchase and download paid packages.", "button": "Sign in" } }')
+  res.send('{"name": "Vapas", "icon": "' + process.env.URL + '/CydiaIcon.png", "description": "Sign into Vapas to purchase and download paid packages.", "authentication_banner": { "message": "Sign into Vapas to purchase and download paid packages.", "button": "Sign in" } }')
 })
 
 routes.get('/payment/authenticate', passport.passport.authenticate('sileoStrategy', { scope: 'profile openid' }), (req, res) => {
@@ -97,8 +98,35 @@ routes.post('/payment/package/:packageID/info', passport.passport.authenticate('
   })
 })
 
-routes.post('/payment/package/:packageID/purchase', function mainHandler (req, res) {
-  res.send(JSON.parse(`{ "status": "1", "url": "sileo://payment_completed" }`))
+routes.post('/payment/package/:packageID/purchase', passport.passport.authenticate('jwt'), function mainHandler (req, res) {
+  database.findDocuments(req.db, 'vapasPackages', { packageName: req.params.packageID }, function (content) {
+    const packageData = content[0].package
+    database.findDocuments(req.db, 'vapasUsers', { id: packageData.developerID }, function (user) {
+      const userData = user[0].user
+      stripe.checkout.sessions.create({
+        customer: req.user.sub,
+        customer_email: req.user.email,
+        client_reference_id: req.params.packageID,
+        payment_method_types: ['card'],
+        line_items: [{
+          name: packageData.name,
+          description: packageData.shortDescription,
+          images: [packageData.headerImage],
+          amount: parseInt(packageData.price.toString().replace('.', ''), 10),
+          currency: 'cad',
+          quantity: 1
+        }],
+        success_url: 'https://development.vapas.gq/stripe/completePayment',
+        cancel_url: 'https://development.vapas.gq/stripe/cancelPayment'
+      }, {
+        stripe_account: userData.stripe.stripe_user_id
+      },
+      function (err, session) {
+        console.log(err)
+        res.send(`<script src="https://js.stripe.com/v3/"></script> <script>var stripe = Stripe('` + process.env.stripeApiPK + `', {stripeAccount: '` + userData.stripe.stripe_user_id + `'}); function loadStripe(){stripe.redirectToCheckout({sessionId: '` + session.id + `'});}</script><body onload="loadStripe()"><h1>You shouldn't see this, contact support</h1></body>`)
+      })
+    })
+  })
 })
 
 routes.post('/payment/package/:packageID/authorize_download', passport.passport.authenticate('jwt'), function mainHandler (req, res) {

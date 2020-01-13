@@ -36,7 +36,7 @@ routes.get('/payment/auth0callback', (req, res, next) => {
     req.logIn(user, function (err) {
       if (err) { return next(err) }
       req.session.timestamp = new Date()
-      logging.pino.info(info)
+      console.log(info)
       res.redirect('sileo://authentication_success?token=' + info + '&payment_secret=piss')
     })
   })(req, res, next)
@@ -102,28 +102,49 @@ routes.post('/payment/package/:packageID/purchase', passport.passport.authentica
   database.findDocuments(req.db, 'vapasPackages', { packageName: req.params.packageID }, function (content) {
     const packageData = content[0].package
     database.findDocuments(req.db, 'vapasUsers', { id: packageData.developerID }, function (user) {
-      const userData = user[0].user
-      stripe.checkout.sessions.create({
-        customer: req.user.sub,
-        customer_email: req.user.email,
-        client_reference_id: req.params.packageID,
-        payment_method_types: ['card'],
-        line_items: [{
-          name: packageData.name,
-          description: packageData.shortDescription,
-          images: [packageData.headerImage],
-          amount: parseInt(packageData.price.toString().replace('.', ''), 10),
-          currency: 'cad',
-          quantity: 1
-        }],
-        success_url: 'https://development.vapas.gq/stripe/completePayment',
-        cancel_url: 'https://development.vapas.gq/stripe/cancelPayment'
-      }, {
-        stripe_account: userData.stripe.stripe_user_id
-      },
-      function (err, session) {
-        console.log(err)
-        res.send(`<script src="https://js.stripe.com/v3/"></script> <script>var stripe = Stripe('` + process.env.stripeApiPK + `', {stripeAccount: '` + userData.stripe.stripe_user_id + `'}); function loadStripe(){stripe.redirectToCheckout({sessionId: '` + session.id + `'});}</script><body onload="loadStripe()"><h1>You shouldn't see this, contact support</h1></body>`)
+      database.findDocuments(req.db, 'vapasUsers', { id: req.user.sub }, function (customerUser) {
+        if (customerUser[0].user.stripe.customer_id === null || customerUser[0].user.stripe === null) {
+          console.log('Creating new customer')
+          stripe.customers.create({
+            description: req.user.sub
+          }, function (err, customer) {
+            if (err) {
+              console.log(err)
+              res.sendStatus(500)
+            }
+            req.db.db('vapasContent').collection('vapasUsers').updateOne({ id: req.user.sub }, { $set: { 'stripe.customer_id': customer.id } }
+              , function (err, result) {
+                if (err) {
+                  console.log(err)
+                  res.sendStatus(500)
+                }
+              })
+          })
+        }
+        const userData = user[0].user
+        stripe.checkout.sessions.create({
+          mode: 'payment',
+          customer: customerUser[0].user.stripe.customer_id,
+          customer_email: req.user.email,
+          client_reference_id: req.params.packageID,
+          payment_method_types: ['card'],
+          line_items: [{
+            name: packageData.name,
+            description: packageData.shortDescription,
+            images: [packageData.headerImage],
+            amount: parseInt(packageData.price.toString().replace('.', ''), 10),
+            currency: 'cad',
+            quantity: 1
+          }],
+          success_url: 'https://development.vapas.gq/stripe/completePayment',
+          cancel_url: 'https://development.vapas.gq/stripe/cancelPayment'
+        }, {
+          stripe_account: userData.stripe.stripe_user_id
+        },
+        function (err, session) {
+          console.log(err)
+          res.send(`<script src="https://js.stripe.com/v3/"></script> <script>var stripe = Stripe('` + process.env.stripeApiPK + `', {stripeAccount: '` + userData.stripe.stripe_user_id + `'}); function loadStripe(){stripe.redirectToCheckout({sessionId: '` + session.id + `'});}</script><body onload="loadStripe()"><h1>You shouldn't see this, contact support</h1></body>`)
+        })
       })
     })
   })

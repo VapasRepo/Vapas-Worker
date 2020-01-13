@@ -1,4 +1,5 @@
 const routes = require('express').Router()
+const compression = require('compression')
 
 const database = require('../../modules/database.js')
 
@@ -15,7 +16,11 @@ routes.get('/./Release', function mainHandler (req, res) {
   })
 })
 
-routes.get('/./Packages', function mainHandler (req, res) {
+routes.get('/./CyidaIcon.png', function mainHandler (req, res) {
+  res.sendFile('./assets/cyidaIcon.png', { root: './' })
+})
+
+routes.get('/./Packages.gz', compression(), function mainHandler (req, res) {
   database.findDocuments(req.db, 'vapasPackages', { }, function (docs) {
     let i
     for (i in docs) {

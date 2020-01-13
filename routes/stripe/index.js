@@ -20,27 +20,7 @@ routes.post('/stripe/register', passport.passport.authenticate('jwt'), function 
   })
 })
 
-routes.post('/stripe/makeNewCustomer', passport.passport.authenticate('jwt'), function mainHandler (req, res) {
-  console.log(req.db)
-  stripe.customers.create({
-    description: req.user.sub
-  }, function (err, customer) {
-    if (err) {
-      console.log(err)
-      res.sendStatus(500)
-    }
-    req.db.db('vapasContent').collection('vapasUsers').updateOne({ id: req.user.sub }, { $set: { stripe: { customer_id: customer.id } } }
-      , function (err, result) {
-        if (err) {
-          console.log(err)
-          res.sendStatus(500)
-        }
-        res.sendStatus(200)
-      })
-  })
-})
-
-routes.get('/stripe/completePaymentHook', function mainHandler (req, res) {
+routes.get('/stripe/completePayment', function mainHandler (req, res) {
   const sig = request.headers['stripe-signature']
 
   let event
@@ -48,12 +28,12 @@ routes.get('/stripe/completePaymentHook', function mainHandler (req, res) {
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.stripeEndpoint);
   } catch (err) {
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    return res.status(400).send(`Webhook Error: ${err.message}`)
   }
 
   // Handle the checkout.session.completed event
   if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
+    const session = event.data.object
 
     // Fulfill the purchase...
     database.findDocuments(req.db, 'vapasPackages', { packageName: req.params.packageID }, function (content) {
@@ -61,9 +41,10 @@ routes.get('/stripe/completePaymentHook', function mainHandler (req, res) {
         const userData = content[0].user
         if (!userData.packages.contains(session.client_reference_id)) {
           req.db.db('vapasContent').collection('vapasUsers').updateOne({ id: session.customer }
-            , { $push: { packages: session.client_reference_id } }, function (err, result) {
+            , { $push: { 'user.packages': session.client_reference_id } }, function (err, result) {
               res.send(JSON.parse(`{ "status": "1", "url": "sileo://payment_completed" }`))
               if (err) {
+                console.log(err)
                 res.send(JSON.parse(`{ "status": "0", "url": "sileo://payment_completed" }`))
               }
             }

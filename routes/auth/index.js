@@ -37,14 +37,22 @@ routes.get('/auth/auth0callback', (req, res, next) => {
     req.logIn(user, function (err) {
       if (err) { return next(err) }
       req.session.timestamp = new Date()
-      request({ uri: process.env.URL + req.cookies.authRedirect, method: 'POST', json: true, body: { token: info } }, function (err, body) {
-        if (err) {
-          res.send(err)
-          res.end()
-          return
-        }
-        res.redirect(body.body)
-      })
+      if (req.cookies.authRedirect === 'browser') {
+        res.cookie('token', info)
+        res.redirect(process.env.URL + '/auth/account')
+      } else if (req.cookies.authRedirect === 'package') {
+        res.cookie('token', info)
+        res.redirect(process.env.URL + '/loginCompleted.html')
+      } else {
+        request({ uri: process.env.URL + req.cookies.authRedirect, method: 'POST', json: true, body: { token: info } }, function (err, body) {
+          if (err) {
+            res.send(err)
+            res.end()
+            return
+          }
+          res.redirect(body.body)
+        })
+      }
     })
   })(req, res, next)
 })

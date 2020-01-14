@@ -2,6 +2,9 @@ const routes = require('express').Router()
 const crypto = require('crypto')
 const request = require('request')
 const stripe = require('stripe')(process.env.stripeApi)
+const bodyParser = require('body-parser')
+const dotenv = require('dotenv')
+const env = dotenv.config()
 
 const database = require('../../modules/database.js')
 const passport = require('../../modules/passport.js')
@@ -21,18 +24,25 @@ routes.post('/stripe/register', passport.passport.authenticate('jwt'), function 
 })
 
 routes.get('/stripe/completePayment', function mainHandler (req, res) {
-  const sig = request.headers['stripe-signature']
+  res.send(JSON.parse(`{ "status": "1", "url": "sileo://payment_completed" }`))
+})
+
+routes.post('/stripe/completePaymentHook', bodyParser.raw({ type: 'application/json' }), function mainHandler (req, res) {
+  console.log('Receiving stripe webhook')
+  const sig = req.headers['stripe-signature']
 
   let event
 
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.stripeEndpoint);
+    event = stripe.webhooks.constructEvent(req.body, sig, env.parsed.stripeEndpoint)
   } catch (err) {
+    console.log(err.message)
     return res.status(400).send(`Webhook Error: ${err.message}`)
   }
 
   // Handle the checkout.session.completed event
   if (event.type === 'checkout.session.completed') {
+    console.log('session complete')
     const session = event.data.object
 
     // Fulfill the purchase...
@@ -42,16 +52,16 @@ routes.get('/stripe/completePayment', function mainHandler (req, res) {
         if (!userData.packages.contains(session.client_reference_id)) {
           req.db.db('vapasContent').collection('vapasUsers').updateOne({ id: session.customer }
             , { $push: { 'user.packages': session.client_reference_id } }, function (err, result) {
-              res.send(JSON.parse(`{ "status": "1", "url": "sileo://payment_completed" }`))
               if (err) {
                 console.log(err)
-                res.send(JSON.parse(`{ "status": "0", "url": "sileo://payment_completed" }`))
               }
             }
           )
         }
       })
     })
+
+    res.json({ received: true })
   }
 })
 

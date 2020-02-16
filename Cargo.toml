@@ -1,0 +1,13 @@
+[package]
+name = "Vapas-Worker"
+version = "0.1.0"
+authors = ["Skye Viau <skye.viau@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rocket = "0.4.2"
+rocket_contrib = "0.4.2"
+dotenv = "0.15.0"
+dotenv_codegen = "0.15.0"

@@ -1,12 +1,3 @@
-language: node_js
-node_js:
-  - node
-cache:
-  yarn: true
-  directories:
-    - node_modules
-install:
-  - yarn add codecov
-script:
-  - standard
-  - codecov
+language: rust
+rust:
+  - nightly

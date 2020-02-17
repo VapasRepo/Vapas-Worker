@@ -1,6 +1,7 @@
 # Vapas Worker "Rustwrite Edition"
 [![Slack Invite](https://img.shields.io/badge/Join%20Chat-Slack-brightgreen)](https://communityinviter.com/apps/vapasrepo/aaaa)
 [![OpenHub](https://www.openhub.net/p/vapas-worker/widgets/project_thin_badge?format=gif)](https://www.openhub.net/p/vapas-worker)
+[![Travis-CI](https://api.travis-ci.com/VapasRepo/Vapas-Worker.svg?branch=rustwrite)](https://travis-ci.com/VapasRepo/Vapas-Worker)
 
 A rust rewrite of the Vapas Worker NodeJS server  to generate and deliver information for Native Depictions, 
 Web Depictions, and other miscellaneous uses.
@@ -12,7 +13,10 @@ removed.
 
 ## Running
 
-You'll need the same ENV file as found on the NodeJS server, copy it over and it'll work just fine.
+You'll need the same ENV file as found on the NodeJS server, copy it over and it'll work just fine if you rename 
+`SENTRYDSN` to `ROCKET_SENTRY_DSN`.  
+
+Check the `.env.example` for everything required.
 
 ## Screenshots
 

@@ -8,6 +8,7 @@ extern crate dotenv;
 use rocket::response::Redirect;
 use rocket_contrib::serve::StaticFiles;
 use dotenv::dotenv;
+use rocket_sentry::RocketSentry;
 
 #[get("/cydiaRedirect")]
 fn cydia_redirect() -> Redirect {
@@ -17,8 +18,10 @@ fn cydia_redirect() -> Redirect {
 
 fn main() {
     dotenv().ok();
+
     rocket::ignite()
         .mount("/", routes![cydia_redirect])
         .mount("/", StaticFiles::from("public/"))
+        .attach(RocketSentry::fairing())
         .launch();
 }

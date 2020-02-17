@@ -1,5 +1,5 @@
 [package]
-name = "Vapas-Worker"
+name = "vapas_worker"
 version = "0.1.0"
 authors = ["Skye Viau <skye.viau@gmail.com>"]
 edition = "2018"

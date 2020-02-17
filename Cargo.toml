@@ -3,6 +3,11 @@ name = "vapas_worker"
 version = "0.1.0"
 authors = ["Skye Viau <skye.viau@gmail.com>"]
 edition = "2018"
+license = "GPL-3.0-or-later"
+
+homepage = "https://www.vapas.gq"
+repository = "https://github.com/VapasRepo/Vapas-Worker/tree/rustwrite"
+documentation = "https://github.com/VapasRepo/Vapas-Worker/tree/rustwrite/documentation"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

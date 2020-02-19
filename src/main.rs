@@ -10,6 +10,8 @@ use rocket_contrib::serve::StaticFiles;
 use dotenv::dotenv;
 use rocket_sentry::RocketSentry;
 
+mod modules;
+
 #[get("/cydiaRedirect")]
 fn cydia_redirect() -> Redirect {
     println!("{}", dotenv!("URL"));
@@ -20,8 +22,25 @@ fn main() {
     dotenv().ok();
 
     rocket::ignite()
-        .mount("/", routes![cydia_redirect])
-        .mount("/", StaticFiles::from("public/"))
-        .attach(RocketSentry::fairing())
+        // Internal main "/" routes
+        .mount(
+            "/",
+            routes![cydia_redirect]
+        )
+
+        // Static public files
+        .mount(
+            "/",
+            StaticFiles::from("public/")
+        )
+
+        // Core repo information routes
+        .mount(
+            "/",
+            routes![modules::core_info::release, modules::core_info::packages, modules::core_info::cydia_icon, modules::core_info::footer_icon, modules::core_info::default_icons, modules::core_info::sileo_featured]
+        )
+        .attach(
+            RocketSentry::fairing()
+        )
         .launch();
 }

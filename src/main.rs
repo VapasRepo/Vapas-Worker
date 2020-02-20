@@ -11,6 +11,7 @@ use dotenv::dotenv;
 use rocket_sentry::RocketSentry;
 
 mod modules;
+mod services;
 
 #[get("/cydiaRedirect")]
 fn cydia_redirect() -> Redirect {

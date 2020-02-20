@@ -26,6 +26,7 @@ pub fn release() -> String {
 
 #[get("/Packages")]
 pub fn packages() -> String {
+    // for doc in find_documents("vapas") {}
     // TODO: Add loading packages from database
 
     let mut final_payload = String::new();

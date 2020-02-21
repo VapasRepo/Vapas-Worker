@@ -2,6 +2,7 @@
 
 #[macro_use] extern crate rocket;
 #[macro_use] extern crate dotenv_codegen;
+#[macro_use] extern crate bson;
 extern crate rocket_contrib;
 extern crate dotenv;
 
@@ -10,8 +11,8 @@ use rocket_contrib::serve::StaticFiles;
 use dotenv::dotenv;
 use rocket_sentry::RocketSentry;
 
-mod modules;
-mod services;
+pub mod modules;
+pub mod services;
 
 #[get("/cydiaRedirect")]
 fn cydia_redirect() -> Redirect {

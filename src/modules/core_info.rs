@@ -1,9 +1,20 @@
 extern crate rocket;
 extern crate dotenv_codegen;
 extern crate dotenv;
+extern crate mongodb;
+extern crate bson;
 
 use rocket::response::NamedFile;
+
 use std::io;
+
+use mongodb::{Cursor};
+
+use bson::ordered::{OrderedDocument};
+
+use rustc_serialize::json::{Json, ToJson};
+
+use crate::services::database::{find_documents, get_data_string};
 
 #[get("/Release")]
 pub fn release() -> String {
@@ -76,6 +87,13 @@ pub fn default_icons(name: String) -> io::Result<NamedFile> {
 
 #[get("/sileo-featured.json")]
 pub fn sileo_featured() -> String {
-    let payload: String = r#"{"class":"FeaturedBannersView","itemSize":"{263, 148}","itemCornerRadius":10,"banners":[{"url":"https://via.placeholder.com/1500x750","title":"Test Package","package":"gq.vapas.testpackage","hideShadow":false}]}"#.parse().unwrap();
+    let document = find_documents("vapasInfomation".parse().unwrap(), "object".parse().unwrap(), "featured".parse().unwrap());
+
+    let mut payload = "".to_owned();
+
+    for doc in document {
+        payload.push_str(&doc.unwrap().get(&"data").unwrap().to_json().to_string());
+    }
+
     return format!("{}", payload)
 }

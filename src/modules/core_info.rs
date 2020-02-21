@@ -18,19 +18,22 @@ use crate::services::database::{find_documents, get_data_string};
 
 #[get("/Release")]
 pub fn release() -> String {
-    // TODO: Load information from database
+    let document = find_documents("vapasInfomation".parse().unwrap(), "object".parse().unwrap(), "release".parse().unwrap());
 
-    let mut final_payload = String::new();
+    let mut final_payload = "".to_owned();
 
-    // Assemble core repository information
-    final_payload.push_str(format!("Origin: {}\n", "Vapas Rustwrite Development").as_ref());
-    final_payload.push_str(format!("Label: {}\n", "Vapas Rustwrite Development").as_ref());
-    final_payload.push_str("Suite: stable\n");
-    final_payload.push_str("Version: 1.0\n");
-    final_payload.push_str(format!("Codename: {}\n", "vapas").as_ref());
-    final_payload.push_str("Architectures: iphoneos-arm\n");
-    final_payload.push_str("Components: main\n");
-    final_payload.push_str(format!("Description: {}\n", "Development repo for the Vapas Rustwrite").as_ref());
+    for doc in document {
+        let document_data = doc.unwrap().get(&"data").unwrap().to_json();
+        // Assemble core repository information
+        final_payload.push_str(&format!("Origin: {}\n", document_data.get(&"Origin").unwrap().as_str().unwrap()));
+        final_payload.push_str(&format!("Label: {}\n", document_data.get(&"Label").unwrap().as_str().unwrap()));
+        final_payload.push_str(&format!("Suite: {}\n", document_data.get(&"Suite").unwrap().as_str().unwrap()));
+        final_payload.push_str(&format!("Version: {}\n", document_data.get(&"Version").unwrap().as_str().unwrap()));
+        final_payload.push_str(&format!("Codename: {}\n", document_data.get(&"Codename").unwrap().as_str().unwrap()));
+        final_payload.push_str(&format!("Architectures: {}\n", document_data.get(&"Architectures").unwrap().as_str().unwrap()));
+        final_payload.push_str(&format!("Components: {}\n", document_data.get(&"Components").unwrap().as_str().unwrap()));
+        final_payload.push_str(&format!("Description: {}\n", document_data.get(&"Description").unwrap().as_str().unwrap()));
+    }
 
     return final_payload;
 }

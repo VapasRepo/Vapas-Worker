@@ -8,6 +8,8 @@
 
 A NodeJS Express worker to generate and deliver information for Native Depictions, Web Depictions, and other miscellaneous uses.  
 
+[**ISSUE TRACKING HAS BEEN MOVED TO THE VAPAS JIRA** ](https://jira.vapas.gq/projects/WORKER)
+
 ## Running
 
 In order to run the worker, you'll first need to create a `.env` file that contains:

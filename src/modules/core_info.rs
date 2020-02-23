@@ -4,17 +4,16 @@ extern crate dotenv;
 extern crate mongodb;
 extern crate bson;
 
-use rocket::response::NamedFile;
+use rocket::response::{NamedFile, content};
+use rocket::response::content::Json as JsonRocket;
+
+use rocket_contrib::compression::Compress;
 
 use std::io;
 
-use mongodb::{Cursor};
-
-use bson::ordered::{OrderedDocument};
-
 use rustc_serialize::json::{Json, ToJson};
 
-use crate::services::database::{find_documents, get_data_string};
+use crate::services::database::{find_documents};
 
 #[get("/Release")]
 pub fn release() -> String {
@@ -38,8 +37,8 @@ pub fn release() -> String {
     return final_payload;
 }
 
-#[get("/Packages")]
-pub fn packages() -> String {
+#[get("/Packages.gz")]
+pub fn packages() -> Compress<String> {
     let document = find_documents("vapasPackages".parse().unwrap(), doc! {"packageVisible" : true});
 
     let mut final_payload = String::new();
@@ -73,26 +72,26 @@ pub fn packages() -> String {
         // Add final listing and create an extra newline to signal end of package
         final_payload.push_str(format!("Icon: {}\n\n", document_data.get(&"icon").unwrap().as_str().unwrap()).as_ref());
     }
-    return final_payload;
+    return Compress(final_payload);
 }
 
 #[get("/CydiaIcon.png")]
-pub fn cydia_icon() -> io::Result<NamedFile> {
+pub fn cydia_icon() -> std::io::Result<NamedFile> {
     NamedFile::open("assets/cyidaIcon.png")
 }
 
 #[get("/footerIcon.png")]
-pub fn footer_icon() -> io::Result<NamedFile> {
+pub fn footer_icon() -> std::io::Result<NamedFile> {
     NamedFile::open("assets/footerIcon.png")
 }
 
 #[get("/icons/<name>")]
-pub fn default_icons(name: String) -> io::Result<NamedFile> {
+pub fn default_icons(name: String) -> std::io::Result<NamedFile> {
     NamedFile::open(format!("assets/icons/{}.png", name))
 }
 
 #[get("/sileo-featured.json")]
-pub fn sileo_featured() -> String {
+pub fn sileo_featured() -> content::Json<&'static str> {
     let document = find_documents("vapasInfomation".parse().unwrap(), doc! {"object" : "featured"});
 
     let mut payload = "".to_owned();
@@ -101,5 +100,5 @@ pub fn sileo_featured() -> String {
         payload.push_str(&doc.unwrap().get(&"data").unwrap().to_json().to_string());
     }
 
-    return format!("{}", payload)
+    return JsonRocket(format!("{}", payload).as_ref())
 }

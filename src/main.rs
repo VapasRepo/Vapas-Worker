@@ -41,8 +41,8 @@ fn main() {
             "/",
             routes![modules::core_info::release, modules::core_info::packages, modules::core_info::cydia_icon, modules::core_info::footer_icon, modules::core_info::default_icons, modules::core_info::sileo_featured]
         )
-        .attach(
-            RocketSentry::fairing()
-        )
+        //.attach(
+        //    RocketSentry::fairing()
+        //)
         .launch();
 }

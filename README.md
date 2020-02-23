@@ -13,6 +13,8 @@ removed.
 
 ## Running
 
+NOTE: A W.I.P quickstart guide can be found at https://confluence.vapas.gq/display/WORKDOC/Quickstart
+
 You'll need the same ENV file as found on the NodeJS server, copy it over and it'll work just fine if you rename 
 `SENTRYDSN` to `ROCKET_SENTRY_DSN`.  
 

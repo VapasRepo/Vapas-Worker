@@ -7,8 +7,6 @@ extern crate rustc_serialize;
 use mongodb::{Client};
 use mongodb::error::Result as MongoResult;
 
-use rustc_serialize::json::{Json, ToJson};
-
 use bson::{Bson, Document};
 
 pub fn db_client() -> mongodb::error::Result<Client> {

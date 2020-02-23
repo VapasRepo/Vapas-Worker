@@ -12,8 +12,8 @@ documentation = "https://github.com/VapasRepo/Vapas-Worker/tree/rustwrite/docume
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rocket = { version = "0.4.2", default-features = false }
-rocket_contrib = "0.4.2"
+rocket = { version = "0.5.0-dev", default-features = false, git = "https://github.com/SergioBenitez/Rocket.git", branch = "master" }
+rocket_contrib = { version = "0.5.0-dev", features = ["compression"], git = "https://github.com/SergioBenitez/Rocket.git", branch = "master" }
 dotenv = "0.15.0"
 dotenv_codegen = "0.15.0"
 rocket-sentry = "0.1.0"

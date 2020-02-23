@@ -18,7 +18,7 @@ use crate::services::database::{find_documents, get_data_string};
 
 #[get("/Release")]
 pub fn release() -> String {
-    let document = find_documents("vapasInfomation".parse().unwrap(), "object".parse().unwrap(), "release".parse().unwrap());
+    let document = find_documents("vapasInfomation".parse().unwrap(), doc! {"object" : "release"});
 
     let mut final_payload = "".to_owned();
 
@@ -40,36 +40,39 @@ pub fn release() -> String {
 
 #[get("/Packages")]
 pub fn packages() -> String {
-    // for doc in find_documents("vapas") {}
-    // TODO: Add loading packages from database
+    let document = find_documents("vapasPackages".parse().unwrap(), doc! {"packageVisible" : true});
 
     let mut final_payload = String::new();
+    for doc in document {
+        let doc_root = doc.unwrap();
+        let document_data = doc_root.get(&"package").unwrap().to_json();
+        // Collect all data and add it to final_payload for response as a string
+        final_payload.push_str(&format!("Package: {}\n", doc_root.get(&"packageName").unwrap().as_str().unwrap()));
+        final_payload.push_str(format!("Version: {}\n", document_data.get(&"currentVersion").unwrap().get(&"version").unwrap().as_str().unwrap()).as_ref());
+        final_payload.push_str(format!("Section: {}\n", document_data.get(&"section").unwrap().as_str().unwrap()).as_ref());
+        final_payload.push_str(format!("Maintainer: {}\n", document_data.get(&"developer").unwrap().as_str().unwrap()).as_ref());
+        final_payload.push_str(format!("Depends: {}\n", document_data.get(&"depends").unwrap().as_str().unwrap()).as_ref());
+        final_payload.push_str("Architecture: iphoneos-arm\n");
+        final_payload.push_str(format!("Filename: {}/debs/{}_{}_iphoneos-arm.deb\n", dotenv!("URL"), doc_root.get(&"packageName").unwrap().as_str().unwrap(), document_data.get(&"currentVersion").unwrap().get(&"version").unwrap().as_str().unwrap()).as_ref());
+        final_payload.push_str(format!("Size: {}\n", document_data.get(&"currentVersion").unwrap().get(&"size").unwrap().as_str().unwrap()).as_ref());
+        final_payload.push_str(format!("SHA256: {}\n", document_data.get(&"currentVersion").unwrap().get(&"SHA256").unwrap().as_str().unwrap()).as_ref());
+        final_payload.push_str(format!("Description: {}\n", document_data.get(&"shortDescription").unwrap().as_str().unwrap()).as_ref());
+        final_payload.push_str(format!("Name: {}\n", document_data.get(&"name").unwrap().as_str().unwrap()).as_ref());
+        final_payload.push_str(format!("Author: {}\n", document_data.get(&"developer").unwrap().as_str().unwrap()).as_ref());
+        final_payload.push_str(format!("Depiction: {}/depiction/{}\n", dotenv!("URL"), doc_root.get(&"packageName").unwrap().as_str().unwrap()).as_ref());
+        final_payload.push_str(format!("SileoDepiction: {}/sileodepiction/{}\n", dotenv!("URL"), doc_root.get(&"packageName").unwrap().as_str().unwrap()).as_ref());
 
-    // Collect all data and add it to final_payload for response as a string
-    final_payload.push_str(format!("Package: {}\n", "PlaceholderPackage").as_ref());
-    final_payload.push_str(format!("Version: {}\n", "1.0").as_ref());
-    final_payload.push_str(format!("Section: {}\n", "Development").as_ref());
-    final_payload.push_str(format!("Maintainer: {}\n", "Placeholder Maintainer").as_ref());
-    final_payload.push_str(format!("Depends: {}\n", "gq.vapas.placeholder").as_ref());
-    final_payload.push_str("Architecture: iphoneos-arm\n");
-    final_payload.push_str(format!("Filename: {}/debs/{}_{},_iphoneos-arm.deb\n", dotenv!("URL"), "PlaceholderPackage", "1.0").as_ref());
-    final_payload.push_str(format!("Size: {}\n", "4096").as_ref());
-    final_payload.push_str(format!("SHA256: {}\n", "PLACEHOLDER").as_ref());
-    final_payload.push_str(format!("Description: {}\n", "A placeholder package for Vapas Rustwrite").as_ref());
-    final_payload.push_str(format!("Name: {}\n", "Placeholder Package Name").as_ref());
-    final_payload.push_str(format!("Author: {}\n", "Placeholder Author").as_ref());
-    final_payload.push_str(format!("Depiction: {}/depiction/{}\n", dotenv!("URL"), "PlaceholderPackage").as_ref());
-    final_payload.push_str(format!("SileoDepiction: {}/sileodepiction/{}\n", dotenv!("URL"), "PlaceholderPackage").as_ref());
+        let price = document_data.get(&"price").unwrap().as_str().unwrap();
 
-    // Check for the cost of a package
-    if let "1" = &*"0" {
-        // Add it to final_payload
-        final_payload.push_str("Tag: cydia::commercial\n");
+        // Check for the cost of a package
+        if price > "0" {
+            // Add it to final_payload
+            final_payload.push_str("Tag: cydia::commercial\n");
+        }
+
+        // Add final listing and create an extra newline to signal end of package
+        final_payload.push_str(format!("Icon: {}\n\n", document_data.get(&"icon").unwrap().as_str().unwrap()).as_ref());
     }
-
-    // Add final listing and create an extra newline to signal end of package
-    final_payload.push_str(format!("Icon: {}\n\n", "development").as_ref());
-
     return final_payload;
 }
 
@@ -90,7 +93,7 @@ pub fn default_icons(name: String) -> io::Result<NamedFile> {
 
 #[get("/sileo-featured.json")]
 pub fn sileo_featured() -> String {
-    let document = find_documents("vapasInfomation".parse().unwrap(), "object".parse().unwrap(), "featured".parse().unwrap());
+    let document = find_documents("vapasInfomation".parse().unwrap(), doc! {"object" : "featured"});
 
     let mut payload = "".to_owned();
 

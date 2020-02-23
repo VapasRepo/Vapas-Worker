@@ -15,11 +15,12 @@ pub fn db_client() -> mongodb::error::Result<Client> {
     return Client::with_uri_str(dotenv!("dbURL"));
 }
 
-pub fn find_documents(_collection_name: String, _search_key: String, _search_value: String) -> mongodb::Cursor {
+pub fn find_documents(_collection_name: String, _search: Document) -> mongodb::Cursor {
     let db = db_client().unwrap();
     let coll = db.database("vapasContent").collection(&_collection_name);
 
-    return coll.find(doc!{_search_key : _search_value}, None).unwrap();
+    println!("{}", "returning search");
+    coll.find(_search, None).unwrap()
 }
 
 

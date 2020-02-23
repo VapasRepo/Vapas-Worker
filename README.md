@@ -6,6 +6,9 @@
 A rust rewrite of the Vapas Worker NodeJS server  to generate and deliver information for Native Depictions, 
 Web Depictions, and other miscellaneous uses.
 
+[**ISSUE TRACKING HAS BEEN MOVED TO THE VAPAS JIRA** ](https://jira.vapas.gq/projects/WORKER)  
+[**DOCUMENTATION HAS BEEN MOVED TO THE VAPAS CONFLUENCE**](https://confluence.vapas.gq/display/WORKDOC/Vapas+Worker+Documentation)
+
 ## Plan
 The current plan is slowly rewrite each part of the Vapas worker in rust, as such the original JS files will be
 hosted in this branch. When a "module" of the Vapas worker is rewritten, the original JS file for that module will be

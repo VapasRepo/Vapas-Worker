@@ -10,14 +10,19 @@ use rocket::response::Redirect;
 use rocket_contrib::serve::StaticFiles;
 use dotenv::dotenv;
 use rocket_sentry::RocketSentry;
+use rocket::http::hyper::header::Location;
 
 pub mod modules;
 pub mod services;
 
+
+#[derive(Responder)]
+#[response(status=303)]
+struct RawRedirect((), Location);
+
 #[get("/cydiaRedirect")]
-fn cydia_redirect() -> Redirect {
-    println!("{}", dotenv!("URL"));
-    Redirect::to(format!("cydia://url/https://cydia.saurik.com/api/share#?source={}", dotenv!("URL")))
+fn cydia_redirect() -> RawRedirect {
+    RawRedirect((), Location(format!("{}#{}{}", "cydia://url/https://cydia.saurik.com/api/share", "?source=", dotenv!("URL"))))
 }
 
 fn main() {

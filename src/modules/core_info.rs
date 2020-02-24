@@ -9,10 +9,6 @@ use rocket::response::content::Json as JsonRocket;
 
 use rocket_contrib::compression::Compress;
 
-use std::io;
-
-use rustc_serialize::json::{Json, ToJson};
-
 use crate::services::database::{find_documents};
 
 #[get("/Release")]
@@ -37,8 +33,8 @@ pub fn release() -> String {
     return final_payload;
 }
 
-#[get("/Packages.gz")]
-pub fn packages() -> Compress<String> {
+#[get("/Packages")]
+pub fn packages() -> String {
     let document = find_documents("vapasPackages".parse().unwrap(), doc! {"packageVisible" : true});
 
     let mut final_payload = String::new();
@@ -72,26 +68,26 @@ pub fn packages() -> Compress<String> {
         // Add final listing and create an extra newline to signal end of package
         final_payload.push_str(format!("Icon: {}\n\n", document_data.get(&"icon").unwrap().as_str().unwrap()).as_ref());
     }
-    return Compress(final_payload);
+    return final_payload;
 }
 
 #[get("/CydiaIcon.png")]
-pub fn cydia_icon() -> std::io::Result<NamedFile> {
-    NamedFile::open("assets/cyidaIcon.png")
+pub fn cydia_icon() -> Option<NamedFile> {
+    NamedFile::open("assets/cyidaIcon.png").ok()
 }
 
 #[get("/footerIcon.png")]
-pub fn footer_icon() -> std::io::Result<NamedFile> {
-    NamedFile::open("assets/footerIcon.png")
+pub fn footer_icon() -> Option<NamedFile> {
+    NamedFile::open("assets/footerIcon.png").ok()
 }
 
 #[get("/icons/<name>")]
-pub fn default_icons(name: String) -> std::io::Result<NamedFile> {
-    NamedFile::open(format!("assets/icons/{}.png", name))
+pub fn default_icons(name: String) -> Option<NamedFile> {
+    NamedFile::open(format!("assets/icons/{}.png", name)).ok()
 }
 
 #[get("/sileo-featured.json")]
-pub fn sileo_featured() -> content::Json<&'static str> {
+pub fn sileo_featured() -> content::Json<String> {
     let document = find_documents("vapasInfomation".parse().unwrap(), doc! {"object" : "featured"});
 
     let mut payload = "".to_owned();
@@ -100,5 +96,5 @@ pub fn sileo_featured() -> content::Json<&'static str> {
         payload.push_str(&doc.unwrap().get(&"data").unwrap().to_json().to_string());
     }
 
-    return JsonRocket(format!("{}", payload).as_ref())
+    return JsonRocket(payload)
 }

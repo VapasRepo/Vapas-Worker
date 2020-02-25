@@ -9,7 +9,6 @@ extern crate dotenv;
 use rocket::response::Redirect;
 use rocket_contrib::serve::StaticFiles;
 use dotenv::dotenv;
-use rocket_sentry::RocketSentry;
 use rocket::http::hyper::header::Location;
 
 pub mod modules;
@@ -46,8 +45,8 @@ fn main() {
             "/",
             routes![modules::core_info::release, modules::core_info::packages, modules::core_info::cydia_icon, modules::core_info::footer_icon, modules::core_info::default_icons, modules::core_info::sileo_featured]
         )
-        //.attach(
-        //    RocketSentry::fairing()
-        //)
+        .attach(
+            services::rocket_sentry::rocket_sentry::fairing()
+        )
         .launch();
 }

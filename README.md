@@ -5,6 +5,7 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/6fd38166cc6b41c793dfe65016469ec2)](https://www.codacy.com/gh/VapasRepo/Vapas-Worker?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=VapasRepo/Vapas-Worker&amp;utm_campaign=Badge_Grade)
 [![BCH compliance](https://bettercodehub.com/edge/badge/VapasRepo/Vapas-Worker?branch=develop)](https://bettercodehub.com/)
 [![Build Status](https://travis-ci.com/VapasRepo/Vapas-Worker.svg?branch=develop)](https://travis-ci.com/VapasRepo/Vapas-Worker)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FVapasRepo%2FVapas-Worker.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FVapasRepo%2FVapas-Worker?ref=badge_shield)
 
 A NodeJS Express worker to generate and deliver information for Native Depictions, Web Depictions, and other miscellaneous uses.  
 
@@ -30,3 +31,7 @@ After that, just run `yarn install` and then `yarn start`!
 <div align="center">
     <img src="https://gitlab.com/vapas/vapas-worker/raw/master/assets/footerIcon.png" width="10%" alt="Vapas Footer Icon"/>
 </div>
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FVapasRepo%2FVapas-Worker.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FVapasRepo%2FVapas-Worker?ref=badge_large)

@@ -7,7 +7,7 @@ license = "GPL-3.0-or-later"
 
 homepage = "https://www.vapas.gq"
 repository = "https://github.com/VapasRepo/Vapas-Worker/tree/rustwrite"
-documentation = "https://github.com/VapasRepo/Vapas-Worker/tree/rustwrite/documentation"
+documentation = "https://confluence.vapas.gq/display/WORKDOC"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -20,3 +20,9 @@ sentry = "^0.17.0"
 mongodb = "^0.9.1"
 bson = "^0.14.0"
 rustc-serialize = "^0.3.24"
+serde_json = "1.0"
+serde_derive = "1.0.106"
+serde = "1.0.106"
+flate2 = "1.0.14"
+diesel = { version = "1.4.4", features = ["postgres"]}
+chrono = "0.4"

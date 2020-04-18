@@ -3,6 +3,10 @@
 #[macro_use] extern crate rocket;
 #[macro_use] extern crate dotenv_codegen;
 #[macro_use] extern crate bson;
+#[macro_use] extern crate serde_derive;
+#[macro_use] extern crate serde_json;
+#[macro_use] extern crate diesel;
+#[macro_use] extern crate chrono;
 extern crate rocket_contrib;
 extern crate dotenv;
 
@@ -13,7 +17,7 @@ use rocket::http::hyper::header::Location;
 
 pub mod modules;
 pub mod services;
-
+pub mod structs;
 
 #[derive(Responder)]
 #[response(status=303)]
@@ -45,6 +49,34 @@ fn main() {
             "/",
             routes![modules::core_info::release, modules::core_info::packages, modules::core_info::cydia_icon, modules::core_info::footer_icon, modules::core_info::default_icons, modules::core_info::sileo_featured]
         )
+
+        // Core repo information routes for Cydia
+        .mount(
+            "/./",
+            routes![modules::core_info::release, modules::core_info::packages, modules::core_info::cydia_icon]
+        )
+
+
+        // Depictions routes
+        /* *
+        .mount(
+            "/",
+            routes![modules::depictions::depiction, modules::depictions::sileo_depiction]
+        )
+        **/
+
+        // Payment information routes
+        .mount(
+            "/",
+            routes![modules::payment_handling::payment_endpoint, modules::payment_handling::payment_response]
+        )
+
+        // Payment routes
+        .mount(
+            "/payment/",
+            routes![modules::payment_handling::payment_info]
+        )
+
         .attach(
             services::rocket_sentry::rocket_sentry::fairing()
         )

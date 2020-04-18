@@ -1,74 +1,93 @@
 extern crate rocket;
 extern crate dotenv_codegen;
 extern crate dotenv;
-extern crate mongodb;
-extern crate bson;
+extern crate diesel;
+
+use diesel::prelude::*;
+use crate::structs::*;
+
+use flate2::Compression;
+use flate2::write::GzEncoder;
 
 use rocket::response::{NamedFile, content};
 use rocket::response::content::Json as JsonRocket;
 
 use rocket_contrib::compression::Compress;
 
-use crate::services::database::{find_documents};
+use crate::services::database::*;
+use std::io::Write;
+use crate::structs::models::*;
 
 #[get("/Release")]
 pub fn release() -> String {
-    let document = find_documents("vapasInfomation".parse().unwrap(), doc! {"object" : "release"});
+    use crate::structs::schema::vapas_release::dsl::*;
+
+    let connection = establish_connection();
+    let results = vapas_release
+        .load::<vapas_release>(&connection)
+        .expect("Error loading release information");
 
     let mut final_payload = "".to_owned();
 
-    for doc in document {
-        let document_data = doc.unwrap().get(&"data").unwrap().to_json();
+    for release in results {
         // Assemble core repository information
-        final_payload.push_str(&format!("Origin: {}\n", document_data.get(&"Origin").unwrap().as_str().unwrap()));
-        final_payload.push_str(&format!("Label: {}\n", document_data.get(&"Label").unwrap().as_str().unwrap()));
-        final_payload.push_str(&format!("Suite: {}\n", document_data.get(&"Suite").unwrap().as_str().unwrap()));
-        final_payload.push_str(&format!("Version: {}\n", document_data.get(&"Version").unwrap().as_str().unwrap()));
-        final_payload.push_str(&format!("Codename: {}\n", document_data.get(&"Codename").unwrap().as_str().unwrap()));
-        final_payload.push_str(&format!("Architectures: {}\n", document_data.get(&"Architectures").unwrap().as_str().unwrap()));
-        final_payload.push_str(&format!("Components: {}\n", document_data.get(&"Components").unwrap().as_str().unwrap()));
-        final_payload.push_str(&format!("Description: {}\n", document_data.get(&"Description").unwrap().as_str().unwrap()));
+        final_payload.push_str(&format!("Origin: {}\n", release.origin));
+        final_payload.push_str(&format!("Label: {}\n", release.label));
+        final_payload.push_str(&format!("Suite: {}\n", release.suite));
+        final_payload.push_str(&format!("Version: {}\n", release.version));
+        final_payload.push_str(&format!("Codename: {}\n", release.codename));
+        final_payload.push_str(&format!("Architectures: {}\n", release.architectures));
+        final_payload.push_str(&format!("Components: {}\n", release.components));
+        final_payload.push_str(&format!("Description: {}\n", release.description));
     }
 
     return final_payload;
 }
 
-#[get("/Packages")]
-pub fn packages() -> String {
-    let document = find_documents("vapasPackages".parse().unwrap(), doc! {"packageVisible" : true});
+#[get("/Packages.gz")]
+pub fn packages() -> Vec<u8> {
+    use crate::structs::schema::package_information::dsl::*;
+
+    let connection = establish_connection();
+    let results = package_information
+        .filter(package_visible.eq(true))
+        .load::<package_information>(connection)
+        .expect("Error loading package information");
 
     let mut final_payload = String::new();
-    for doc in document {
-        let doc_root = doc.unwrap();
-        let document_data = doc_root.get(&"package").unwrap().to_json();
-        // Collect all data and add it to final_payload for response as a string
-        final_payload.push_str(&format!("Package: {}\n", doc_root.get(&"packageName").unwrap().as_str().unwrap()));
-        final_payload.push_str(format!("Version: {}\n", document_data.get(&"currentVersion").unwrap().get(&"version").unwrap().as_str().unwrap()).as_ref());
-        final_payload.push_str(format!("Section: {}\n", document_data.get(&"section").unwrap().as_str().unwrap()).as_ref());
-        final_payload.push_str(format!("Maintainer: {}\n", document_data.get(&"developer").unwrap().as_str().unwrap()).as_ref());
-        final_payload.push_str(format!("Depends: {}\n", document_data.get(&"depends").unwrap().as_str().unwrap()).as_ref());
-        final_payload.push_str("Architecture: iphoneos-arm\n");
-        final_payload.push_str(format!("Filename: {}/debs/{}_{}_iphoneos-arm.deb\n", dotenv!("URL"), doc_root.get(&"packageName").unwrap().as_str().unwrap(), document_data.get(&"currentVersion").unwrap().get(&"version").unwrap().as_str().unwrap()).as_ref());
-        final_payload.push_str(format!("Size: {}\n", document_data.get(&"currentVersion").unwrap().get(&"size").unwrap().as_str().unwrap()).as_ref());
-        final_payload.push_str(format!("SHA256: {}\n", document_data.get(&"currentVersion").unwrap().get(&"SHA256").unwrap().as_str().unwrap()).as_ref());
-        final_payload.push_str(format!("Description: {}\n", document_data.get(&"shortDescription").unwrap().as_str().unwrap()).as_ref());
-        final_payload.push_str(format!("Name: {}\n", document_data.get(&"name").unwrap().as_str().unwrap()).as_ref());
-        final_payload.push_str(format!("Author: {}\n", document_data.get(&"developer").unwrap().as_str().unwrap()).as_ref());
-        final_payload.push_str(format!("Depiction: {}/depiction/{}\n", dotenv!("URL"), doc_root.get(&"packageName").unwrap().as_str().unwrap()).as_ref());
-        final_payload.push_str(format!("SileoDepiction: {}/sileodepiction/{}\n", dotenv!("URL"), doc_root.get(&"packageName").unwrap().as_str().unwrap()).as_ref());
 
-        let price = document_data.get(&"price").unwrap().as_str().unwrap();
+    for information in results {
+        // Collect all data and add it to final_payload for response as a string
+        final_payload.push_str(&format!("Package: {}\n", information.package_id));
+        final_payload.push_str(&format!("Version: {}\n", information.version));
+        final_payload.push_str(&format!("Section: {}\n", information.section));
+        final_payload.push_str(&format!("Maintainer: {}\n", information.developer_name));
+        final_payload.push_str(&format!("Depends: {}\n", information.depends));
+        final_payload.push_str("Architecture: iphoneos-arm\n");
+        final_payload.push_str(&format!("Filename: {}/debs/{}_{}_iphoneos-arm.deb\n", dotenv!("URL"), information.name, information.version));
+        final_payload.push_str(&format!("Size: {}\n", information.version_size.to_String()));
+        final_payload.push_str(&format!("SHA256: {}\n", information.version_hash));
+        final_payload.push_str(&format!("Description: {}\n", information.short_description));
+        final_payload.push_str(&format!("Name: {}\n", information.name));
+        final_payload.push_str(&format!("Author: {}\n", information.developer_name));
+        final_payload.push_str(&format!("SileoDepiction: {}/sileodepiction/{}\n", dotenv!("URL"), information.package_id));
+        final_payload.push_str(&format!("Depiction: {}/depiction/{}\n", dotenv!("URL"), information.package_id));
 
         // Check for the cost of a package
-        if price > "0" {
+        if information.price > 0 {
             // Add it to final_payload
             final_payload.push_str("Tag: cydia::commercial\n");
         }
 
         // Add final listing and create an extra newline to signal end of package
-        final_payload.push_str(format!("Icon: {}\n\n", document_data.get(&"icon").unwrap().as_str().unwrap()).as_ref());
+        final_payload.push_str(&format!("Icon: {}\n\n", information.icon));
     }
-    return final_payload;
+
+    // Compress the string for use with clients
+    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+    encoder.write_all(final_payload.as_ref());
+
+    return encoder.finish().unwrap();
 }
 
 #[get("/CydiaIcon.png")]
@@ -88,13 +107,27 @@ pub fn default_icons(name: String) -> Option<NamedFile> {
 
 #[get("/sileo-featured.json")]
 pub fn sileo_featured() -> content::Json<String> {
-    let document = find_documents("vapasInfomation".parse().unwrap(), doc! {"object" : "featured"});
+    use crate::structs::schema::vapas_featured::dsl::*;
+
+    let connection = establish_connection();
+    let results = vapas_featured
+        .filter(hide_shadow.eq(false))
+        .load::<vapas_featured>(&connection)
+        .expect("Error loading featured information");
 
     let mut payload = "".to_owned();
+    let mut featured_payload = "".to_owned();
 
-    for doc in document {
-        payload.push_str(&doc.unwrap().get(&"data").unwrap().to_json().to_string());
+    for featured in results {
+
     }
+
+    payload = json!({
+        "class":"FeaturedBannersView",
+        "itemSize":"{263, 148}",
+        "itemCornerRadius":10,
+        "banners":[{}]
+    }).to_string();
 
     return JsonRocket(payload)
 }

@@ -11,7 +11,6 @@ use flate2::write::GzEncoder;
 use rocket::response::{NamedFile, content};
 use rocket::response::content::Json as JsonRocket;
 
-use rocket_contrib::compression::Compress;
 use std::io::Write;
 use crate::VapasDBConn;
 
@@ -20,7 +19,7 @@ pub fn release(conn: VapasDBConn) -> String {
     use crate::structs::schema::vapas_release::dsl::*;
 
     let results = vapas_release
-        .load::<crate::structs::models::vapas_release>(&*conn)
+        .load::<crate::structs::models::VapasRelease>(&*conn)
         .expect("Error loading release information");
 
     let mut final_payload = "".to_owned();
@@ -46,7 +45,7 @@ pub fn packages(conn: VapasDBConn) -> Vec<u8> {
 
     let results = package_information
         .filter(package_visible.eq(true))
-        .load::<crate::structs::models::package_information>(&*conn)
+        .load::<crate::structs::models::PackageInformation>(&*conn)
         .expect("Error loading package information");
 
     let mut final_payload = String::new();
@@ -106,7 +105,7 @@ pub fn sileo_featured(conn: VapasDBConn) -> content::Json<String> {
 
     let results = vapas_featured
         .filter(hide_shadow.eq(false))
-        .load::<crate::structs::models::vapas_featured>(&*conn)
+        .load::<crate::structs::models::VapasFeatured>(&*conn)
         .expect("Error loading featured information");
 
     let mut payload = "".to_owned();

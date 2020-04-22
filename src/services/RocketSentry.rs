@@ -4,13 +4,13 @@ use rocket::fairing::{Fairing, Info, Kind};
 use rocket::Rocket;
 use sentry::internals::ClientInitGuard;
 
-pub struct rocket_sentry {
+pub struct RocketSentry {
     guard: Mutex<Option<ClientInitGuard>>,
 }
 
-impl rocket_sentry {
+impl RocketSentry {
     pub fn fairing() -> impl Fairing {
-        rocket_sentry {
+        RocketSentry {
             guard: Mutex::new(None),
         }
     }
@@ -35,10 +35,10 @@ impl rocket_sentry {
     }
 }
 
-impl Fairing for rocket_sentry {
+impl Fairing for RocketSentry {
     fn info(&self) -> Info {
         Info {
-            name: "rocket_sentry",
+            name: "RocketSentry",
             // Kind::Response is necessary, otherwise Rocket dealloc's our SentryGuard reference.
             kind: Kind::Attach | Kind::Response,
         }

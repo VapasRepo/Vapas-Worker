@@ -1,3 +1,3 @@
 pub mod database;
-pub mod rocket_sentry;
+pub mod RocketSentry;
 pub mod keys;

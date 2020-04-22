@@ -2,19 +2,17 @@
 
 #[macro_use] extern crate rocket;
 #[macro_use] extern crate dotenv_codegen;
-#[macro_use] extern crate bson;
-#[macro_use] extern crate serde_derive;
-#[macro_use] extern crate serde_json;
 #[macro_use] extern crate diesel;
-#[macro_use] extern crate chrono;
 #[macro_use] extern crate rocket_contrib;
 extern crate dotenv;
+extern crate chrono;
+extern crate serde_derive;
+extern crate serde_json;
+extern crate bson;
 
-use rocket::response::Redirect;
 use rocket_contrib::serve::StaticFiles;
 use dotenv::dotenv;
 use rocket::http::hyper::header::Location;
-use diesel::prelude::*;
 
 pub mod modules;
 pub mod services;
@@ -84,7 +82,7 @@ fn main() {
 
         // Attach Sentry Fairing
         .attach(
-            services::rocket_sentry::rocket_sentry::fairing()
+            services::RocketSentry::RocketSentry::fairing()
         )
 
         // Attach Rocket Diesel Pooling

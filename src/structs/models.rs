@@ -2,7 +2,7 @@ use diesel::pg::types::date_and_time::PgDate;
 use diesel::pg::types::sql_types::Array;
 
 #[derive(Queryable)]
-pub struct package_information {
+pub struct PackageInformation {
     pub package_id: String,
     pub package_visible: bool,
     pub name: String,
@@ -28,7 +28,7 @@ pub struct package_information {
 }
 
 #[derive(Queryable)]
-pub struct vapas_featured {
+pub struct VapasFeatured {
     pub url: String,
     pub title: String,
     pub package: String,
@@ -36,7 +36,7 @@ pub struct vapas_featured {
 }
 
 #[derive(Queryable)]
-pub struct vapas_release {
+pub struct VapasRelease {
     pub origin: String,
     pub label: String,
     pub suite: String,

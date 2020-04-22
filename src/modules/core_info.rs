@@ -4,7 +4,6 @@ extern crate dotenv;
 extern crate diesel;
 
 use diesel::prelude::*;
-use crate::structs::*;
 
 use flate2::Compression;
 use flate2::write::GzEncoder;
@@ -16,7 +15,6 @@ use rocket_contrib::compression::Compress;
 
 use crate::services::database::*;
 use std::io::Write;
-use crate::structs::models::*;
 
 #[get("/Release")]
 pub fn release() -> String {
@@ -24,7 +22,7 @@ pub fn release() -> String {
 
     let connection = establish_connection();
     let results = vapas_release
-        .load::<vapas_release>(&connection)
+        .load::<crate::structs::models::vapas_release>(&connection)
         .expect("Error loading release information");
 
     let mut final_payload = "".to_owned();
@@ -51,7 +49,7 @@ pub fn packages() -> Vec<u8> {
     let connection = establish_connection();
     let results = package_information
         .filter(package_visible.eq(true))
-        .load::<package_information>(connection)
+        .load::<crate::structs::models::package_information>(&connection)
         .expect("Error loading package information");
 
     let mut final_payload = String::new();
@@ -65,7 +63,7 @@ pub fn packages() -> Vec<u8> {
         final_payload.push_str(&format!("Depends: {}\n", information.depends));
         final_payload.push_str("Architecture: iphoneos-arm\n");
         final_payload.push_str(&format!("Filename: {}/debs/{}_{}_iphoneos-arm.deb\n", dotenv!("URL"), information.name, information.version));
-        final_payload.push_str(&format!("Size: {}\n", information.version_size.to_String()));
+        final_payload.push_str(&format!("Size: {}\n", information.version_size.to_string()));
         final_payload.push_str(&format!("SHA256: {}\n", information.version_hash));
         final_payload.push_str(&format!("Description: {}\n", information.short_description));
         final_payload.push_str(&format!("Name: {}\n", information.name));
@@ -112,7 +110,7 @@ pub fn sileo_featured() -> content::Json<String> {
     let connection = establish_connection();
     let results = vapas_featured
         .filter(hide_shadow.eq(false))
-        .load::<vapas_featured>(&connection)
+        .load::<crate::structs::models::vapas_featured>(&connection)
         .expect("Error loading featured information");
 
     let mut payload = "".to_owned();

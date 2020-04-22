@@ -12,17 +12,15 @@ use rocket::response::{NamedFile, content};
 use rocket::response::content::Json as JsonRocket;
 
 use rocket_contrib::compression::Compress;
-
-use crate::services::database::*;
 use std::io::Write;
+use crate::VapasDBConn;
 
 #[get("/Release")]
-pub fn release() -> String {
+pub fn release(conn: VapasDBConn) -> String {
     use crate::structs::schema::vapas_release::dsl::*;
 
-    let connection = establish_connection();
     let results = vapas_release
-        .load::<crate::structs::models::vapas_release>(&connection)
+        .load::<crate::structs::models::vapas_release>(&*conn)
         .expect("Error loading release information");
 
     let mut final_payload = "".to_owned();
@@ -43,13 +41,12 @@ pub fn release() -> String {
 }
 
 #[get("/Packages.gz")]
-pub fn packages() -> Vec<u8> {
+pub fn packages(conn: VapasDBConn) -> Vec<u8> {
     use crate::structs::schema::package_information::dsl::*;
 
-    let connection = establish_connection();
     let results = package_information
         .filter(package_visible.eq(true))
-        .load::<crate::structs::models::package_information>(&connection)
+        .load::<crate::structs::models::package_information>(&*conn)
         .expect("Error loading package information");
 
     let mut final_payload = String::new();
@@ -104,13 +101,12 @@ pub fn default_icons(name: String) -> Option<NamedFile> {
 }
 
 #[get("/sileo-featured.json")]
-pub fn sileo_featured() -> content::Json<String> {
+pub fn sileo_featured(conn: VapasDBConn) -> content::Json<String> {
     use crate::structs::schema::vapas_featured::dsl::*;
 
-    let connection = establish_connection();
     let results = vapas_featured
         .filter(hide_shadow.eq(false))
-        .load::<crate::structs::models::vapas_featured>(&connection)
+        .load::<crate::structs::models::vapas_featured>(&*conn)
         .expect("Error loading featured information");
 
     let mut payload = "".to_owned();

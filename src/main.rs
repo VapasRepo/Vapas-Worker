@@ -7,13 +7,14 @@
 #[macro_use] extern crate serde_json;
 #[macro_use] extern crate diesel;
 #[macro_use] extern crate chrono;
-extern crate rocket_contrib;
+#[macro_use] extern crate rocket_contrib;
 extern crate dotenv;
 
 use rocket::response::Redirect;
 use rocket_contrib::serve::StaticFiles;
 use dotenv::dotenv;
 use rocket::http::hyper::header::Location;
+use diesel::prelude::*;
 
 pub mod modules;
 pub mod services;
@@ -27,6 +28,10 @@ struct RawRedirect((), Location);
 fn cydia_redirect() -> RawRedirect {
     RawRedirect((), Location(format!("{}#{}{}", "cydia://url/https://cydia.saurik.com/api/share", "?source=", dotenv!("URL"))))
 }
+
+// Database pooling with Rocket
+#[database("vapasdb")]
+struct VapasDBConn(rocket_contrib::databases::diesel::PgConnection);
 
 fn main() {
     dotenv().ok();
@@ -77,8 +82,15 @@ fn main() {
             routes![modules::payment_handling::payment_info]
         )
 
+        // Attach Sentry Fairing
         .attach(
             services::rocket_sentry::rocket_sentry::fairing()
         )
+
+        // Attach Rocket Diesel Pooling
+        .attach(
+            VapasDBConn::fairing()
+        )
+
         .launch();
 }

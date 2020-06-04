@@ -4,15 +4,16 @@ extern crate serde_json;
 extern crate dotenv_codegen;
 extern crate dotenv;
 
-use rocket_contrib::json::{Json, JsonValue};
-
-use rocket::response::content;
+use dotenv::dotenv;
+use std::env;
 
 use crate::services::database::{find_documents};
 use std::ptr::null;
 
 #[get("/sileodepiction/<_packageid>")]
 pub fn sileo_depiction(_packageid: String) -> content::Json<String> {
+    dotenv().ok();
+
     // TODO: Implement Native (Sileo/Installer) Depictions
     let document = find_documents("vapasPackages".parse().unwrap(), doc! {"packageName" : _packageid});
 
@@ -118,7 +119,7 @@ pub fn sileo_depiction(_packageid: String) -> content::Json<String> {
                 "spacing": 10,
                 "class": "DepictionSpacerView"
             }, {
-                "URL": format!("{}/footerIcon.png", dotenv!("URL")),
+                "URL": format!("{}/footerIcon.png", env::var("URL").unwrap()),
                 "width": 125,
                 "height": 67.5,
                 "cornerRadius": 0,

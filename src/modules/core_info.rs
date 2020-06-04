@@ -7,6 +7,9 @@ use actix_web::{get, web, HttpResponse, Responder, http::ContentEncoding, dev::B
 
 use diesel::prelude::*;
 
+use dotenv::dotenv;
+use std::env;
+
 use crate::services::database::DbPool;
 
 #[get("/Release")]
@@ -39,6 +42,8 @@ pub async fn release(pool: web::Data<DbPool>) -> impl Responder {
 
 #[get("/Packages.gz")]
 pub async fn packages(pool: web::Data<DbPool>) -> impl Responder {
+    dotenv().ok();
+
     use crate::structs::schema::package_information::dsl::*;
     
     let conn = pool.get().unwrap();
@@ -58,14 +63,14 @@ pub async fn packages(pool: web::Data<DbPool>) -> impl Responder {
         final_payload.push_str(&format!("Maintainer: {}\n", information.developer_name));
         final_payload.push_str(&format!("Depends: {}\n", information.depends));
         final_payload.push_str("Architecture: iphoneos-arm\n");
-        final_payload.push_str(&format!("Filename: {}/debs/{}_{}_iphoneos-arm.deb\n", dotenv!("URL"), information.name, information.version));
+        final_payload.push_str(&format!("Filename: {}/debs/{}_{}_iphoneos-arm.deb\n", env::var("URL").unwrap(), information.name, information.version));
         final_payload.push_str(&format!("Size: {}\n", information.version_size.to_string()));
         final_payload.push_str(&format!("SHA256: {}\n", information.version_hash));
         final_payload.push_str(&format!("Description: {}\n", information.short_description));
         final_payload.push_str(&format!("Name: {}\n", information.name));
         final_payload.push_str(&format!("Author: {}\n", information.developer_name));
-        final_payload.push_str(&format!("SileoDepiction: {}/sileodepiction/{}\n", dotenv!("URL"), information.package_id));
-        final_payload.push_str(&format!("Depiction: {}/depiction/{}\n", dotenv!("URL"), information.package_id));
+        final_payload.push_str(&format!("SileoDepiction: {}/sileodepiction/{}\n", env::var("URL").unwrap(), information.package_id));
+        final_payload.push_str(&format!("Depiction: {}/depiction/{}\n", env::var("URL").unwrap(), information.package_id));
 
         // Check for the cost of a package
         if information.price > 0 {

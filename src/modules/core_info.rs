@@ -1,25 +1,22 @@
-extern crate rocket;
 extern crate dotenv_codegen;
 extern crate dotenv;
 extern crate diesel;
+extern crate actix_web;
+
+use actix_web::{get, web, HttpResponse, Responder, http::ContentEncoding, dev::BodyEncoding};
 
 use diesel::prelude::*;
 
-use flate2::Compression;
-use flate2::write::GzEncoder;
-
-use rocket::response::{NamedFile, content};
-use rocket::response::content::Json as JsonRocket;
-
-use std::io::Write;
-use crate::VapasDBConn;
+use crate::services::database::DbPool;
 
 #[get("/Release")]
-pub fn release(conn: VapasDBConn) -> String {
+pub async fn release(pool: web::Data<DbPool>) -> impl Responder {
     use crate::structs::schema::vapas_release::dsl::*;
 
+    let conn = pool.get().unwrap();
+
     let results = vapas_release
-        .load::<crate::structs::models::VapasRelease>(&*conn)
+        .load::<crate::structs::models::VapasRelease>(&conn)
         .expect("Error loading release information");
 
     let mut final_payload = "".to_owned();
@@ -36,16 +33,19 @@ pub fn release(conn: VapasDBConn) -> String {
         final_payload.push_str(&format!("Description: {}\n", release.description));
     }
 
-    return final_payload;
+    HttpResponse::Ok()
+        .body(final_payload)
 }
 
 #[get("/Packages.gz")]
-pub fn packages(conn: VapasDBConn) -> Vec<u8> {
+pub async fn packages(pool: web::Data<DbPool>) -> impl Responder {
     use crate::structs::schema::package_information::dsl::*;
+    
+    let conn = pool.get().unwrap();
 
     let results = package_information
         .filter(package_visible.eq(true))
-        .load::<crate::structs::models::PackageInformation>(&*conn)
+        .load::<crate::structs::models::PackageInformation>(&conn)
         .expect("Error loading package information");
 
     let mut final_payload = String::new();
@@ -77,35 +77,37 @@ pub fn packages(conn: VapasDBConn) -> Vec<u8> {
         final_payload.push_str(&format!("Icon: {}\n\n", information.icon));
     }
 
-    // Compress the string for use with clients
-    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-    encoder.write_all(final_payload.as_ref());
-
-    return encoder.finish().unwrap();
+    HttpResponse::Ok()
+        .encoding(ContentEncoding::Gzip)
+        .body(final_payload)
 }
 
+/**
 #[get("/CydiaIcon.png")]
-pub fn cydia_icon() -> Option<NamedFile> {
+async pub fn cydia_icon() -> Option<NamedFile> {
     NamedFile::open("assets/cyidaIcon.png").ok()
 }
 
 #[get("/footerIcon.png")]
-pub fn footer_icon() -> Option<NamedFile> {
+async pub fn footer_icon() -> Option<NamedFile> {
     NamedFile::open("assets/footerIcon.png").ok()
 }
 
 #[get("/icons/<name>")]
-pub fn default_icons(name: String) -> Option<NamedFile> {
+async pub fn default_icons(name: String) -> Option<NamedFile> {
     NamedFile::open(format!("assets/icons/{}.png", name)).ok()
 }
+**/
 
 #[get("/sileo-featured.json")]
-pub fn sileo_featured(conn: VapasDBConn) -> content::Json<String> {
+pub async fn sileo_featured(pool: web::Data<DbPool>) -> impl Responder {
     use crate::structs::schema::vapas_featured::dsl::*;
+
+    let conn = pool.get().unwrap();
 
     let results = vapas_featured
         .filter(hide_shadow.eq(false))
-        .load::<crate::structs::models::VapasFeatured>(&*conn)
+        .load::<crate::structs::models::VapasFeatured>(&conn)
         .expect("Error loading featured information");
 
     let mut payload = "".to_owned();
@@ -115,12 +117,8 @@ pub fn sileo_featured(conn: VapasDBConn) -> content::Json<String> {
 
     }
 
-    payload = json!({
-        "class":"FeaturedBannersView",
-        "itemSize":"{263, 148}",
-        "itemCornerRadius":10,
-        "banners":[{}]
-    }).to_string();
+    payload = "a".parse().unwrap();
 
-    return JsonRocket(payload)
+    HttpResponse::Ok()
+        .json(payload)
 }

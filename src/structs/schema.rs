@@ -47,8 +47,4 @@ table! {
     }
 }
 
-allow_tables_to_appear_in_same_query!(
-    package_information,
-    vapas_featured,
-    vapas_release,
-);
+allow_tables_to_appear_in_same_query!(package_information, vapas_featured, vapas_release,);

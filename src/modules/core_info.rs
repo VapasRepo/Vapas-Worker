@@ -1,9 +1,9 @@
-extern crate dotenv_codegen;
-extern crate dotenv;
-extern crate diesel;
 extern crate actix_web;
+extern crate diesel;
+extern crate dotenv;
+extern crate dotenv_codegen;
 
-use actix_web::{get, web, HttpResponse, Responder, http::ContentEncoding, dev::BodyEncoding};
+use actix_web::{dev::BodyEncoding, get, http::ContentEncoding, web, HttpResponse, Responder};
 
 use diesel::prelude::*;
 
@@ -36,8 +36,7 @@ pub async fn release(pool: web::Data<DbPool>) -> impl Responder {
         final_payload.push_str(&format!("Description: {}\n", release.description));
     }
 
-    HttpResponse::Ok()
-        .body(final_payload)
+    HttpResponse::Ok().body(final_payload)
 }
 
 #[get("/Packages.gz")]
@@ -45,7 +44,7 @@ pub async fn packages(pool: web::Data<DbPool>) -> impl Responder {
     dotenv().ok();
 
     use crate::structs::schema::package_information::dsl::*;
-    
+
     let conn = pool.get().unwrap();
 
     let results = package_information
@@ -63,14 +62,27 @@ pub async fn packages(pool: web::Data<DbPool>) -> impl Responder {
         final_payload.push_str(&format!("Maintainer: {}\n", information.developer_name));
         final_payload.push_str(&format!("Depends: {}\n", information.depends));
         final_payload.push_str("Architecture: iphoneos-arm\n");
-        final_payload.push_str(&format!("Filename: {}/debs/{}_{}_iphoneos-arm.deb\n", env::var("URL").unwrap(), information.name, information.version));
+        final_payload.push_str(&format!(
+            "Filename: {}/debs/{}_{}_iphoneos-arm.deb\n",
+            env::var("URL").unwrap(),
+            information.name,
+            information.version
+        ));
         final_payload.push_str(&format!("Size: {}\n", information.version_size.to_string()));
         final_payload.push_str(&format!("SHA256: {}\n", information.version_hash));
         final_payload.push_str(&format!("Description: {}\n", information.short_description));
         final_payload.push_str(&format!("Name: {}\n", information.name));
         final_payload.push_str(&format!("Author: {}\n", information.developer_name));
-        final_payload.push_str(&format!("SileoDepiction: {}/sileodepiction/{}\n", env::var("URL").unwrap(), information.package_id));
-        final_payload.push_str(&format!("Depiction: {}/depiction/{}\n", env::var("URL").unwrap(), information.package_id));
+        final_payload.push_str(&format!(
+            "SileoDepiction: {}/sileodepiction/{}\n",
+            env::var("URL").unwrap(),
+            information.package_id
+        ));
+        final_payload.push_str(&format!(
+            "Depiction: {}/depiction/{}\n",
+            env::var("URL").unwrap(),
+            information.package_id
+        ));
 
         // Check for the cost of a package
         if information.price > 0 {
@@ -118,12 +130,9 @@ pub async fn sileo_featured(pool: web::Data<DbPool>) -> impl Responder {
     let mut payload = "".to_owned();
     let mut featured_payload = "".to_owned();
 
-    for featured in results {
-
-    }
+    for featured in results {}
 
     payload = "a".parse().unwrap();
 
-    HttpResponse::Ok()
-        .json(payload)
+    HttpResponse::Ok().json(payload)
 }

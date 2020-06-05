@@ -1,16 +1,18 @@
-#[macro_use] extern crate dotenv_codegen;
-#[macro_use] extern crate diesel;
-extern crate dotenv;
+#[macro_use]
+extern crate dotenv_codegen;
+#[macro_use]
+extern crate diesel;
+extern crate bson;
 extern crate chrono;
+extern crate dotenv;
 extern crate serde_derive;
 extern crate serde_json;
-extern crate bson;
 
-use std::io;
 use actix_web::{App, HttpServer};
+use std::io;
 
-use dotenv::dotenv;
 use crate::services::database::establish_connection;
+use dotenv::dotenv;
 
 pub mod modules;
 pub mod services;
@@ -26,11 +28,18 @@ async fn main() -> io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .data(db_pool.clone())
-
             // Cydia redirect URL
-            .external_resource("cydiaRedirect", format!("{}#{}{}", "cydia://url/https://cydia.saurik.com/api/share", "?source=", dotenv!("URL")))
+            .external_resource(
+                "cydiaRedirect",
+                format!(
+                    "{}#{}{}",
+                    "cydia://url/https://cydia.saurik.com/api/share",
+                    "?source=",
+                    dotenv!("URL")
+                ),
+            )
     })
-        .bind(format!("{}:{}", "127.0.0.1", "3030"))?
-        .run()
-        .await
+    .bind(format!("{}:{}", "127.0.0.1", "3030"))?
+    .run()
+    .await
 }

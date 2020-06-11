@@ -1,8 +1,8 @@
-include:
-  - template: SAST.gitlab-ci.yml
-
 stages:
   - build
+
+include:
+  - template: SAST.gitlab-ci.yml
 
 rust-latest:
   stage: build

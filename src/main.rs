@@ -1,6 +1,4 @@
 #[macro_use]
-extern crate dotenv_codegen;
-#[macro_use]
 extern crate diesel;
 extern crate bson;
 extern crate chrono;
@@ -38,6 +36,8 @@ async fn main() -> io::Result<()> {
             .service(modules::core_info::footer_icon)
             // Default Icons
             .service(modules::core_info::default_icons)
+            // Sileo featured JSON
+            .service(modules::core_info::sileo_featured)
             // Cydia redirect URL
             .external_resource(
                 "cydiaRedirect",

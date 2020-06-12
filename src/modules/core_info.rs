@@ -3,19 +3,19 @@ extern crate diesel;
 extern crate dotenv;
 extern crate dotenv_codegen;
 
+use self::actix_web::error::PayloadError::Http2Payload;
+use self::actix_web::http::header::{ContentDisposition, DispositionType};
+use self::actix_web::HttpRequest;
 use actix_files::NamedFile;
 use actix_web::{
     dev::BodyEncoding, get, http::ContentEncoding, web, Error, HttpResponse, Responder,
 };
 
 use diesel::prelude::*;
-
 use dotenv::dotenv;
+use serde::Serialize;
 use std::env;
 
-use self::actix_web::error::PayloadError::Http2Payload;
-use self::actix_web::http::header::{ContentDisposition, DispositionType};
-use self::actix_web::HttpRequest;
 use crate::services::database::DbPool;
 
 #[get("/Release")]
@@ -128,13 +128,30 @@ pub async fn footer_icon() -> Result<NamedFile, Error> {
 #[get("/icons/{name}")]
 pub async fn default_icons(req: HttpRequest) -> Result<NamedFile, Error> {
     let name = req.match_info().get("name").unwrap();
-    println!("File name requested: {}", name);
     Ok(NamedFile::open(format!("assets/icons/{}.png", name))?
         .use_last_modified(true)
         .set_content_disposition(ContentDisposition {
             disposition: DispositionType::Attachment,
             parameters: vec![],
         }))
+}
+
+// Sileo Featured Struct
+#[derive(Serialize)]
+struct SileoFeaturedStruct {
+    class: String,
+    itemSize: String,
+    itemCornerRadius: u64,
+    banners: Vec<SileoFeaturedBannerStruct>,
+}
+
+// Sileo Featured Banner Struct
+#[derive(Serialize)]
+struct SileoFeaturedBannerStruct {
+    url: String,
+    title: String,
+    package: String,
+    hideShadow: bool,
 }
 
 #[get("/sileo-featured.json")]
@@ -144,16 +161,24 @@ pub async fn sileo_featured(pool: web::Data<DbPool>) -> impl Responder {
     let conn = pool.get().unwrap();
 
     let results = vapas_featured
-        .filter(hide_shadow.eq(false))
         .load::<crate::structs::models::VapasFeatured>(&conn)
         .expect("Error loading featured information");
 
-    let mut payload = "".to_owned();
-    let mut featured_payload = "".to_owned();
+    let mut banner: Vec<SileoFeaturedBannerStruct> = Vec::new();
 
-    for featured in results {}
+    for featured in results {
+        banner.push(SileoFeaturedBannerStruct {
+            url: featured.url,
+            title: featured.title,
+            package: featured.package,
+            hideShadow: featured.hide_shadow,
+        })
+    }
 
-    payload = "a".parse().unwrap();
-
-    HttpResponse::Ok().json(payload)
+    HttpResponse::Ok().json(SileoFeaturedStruct {
+        class: "FeaturedBannersView".to_string(),
+        itemSize: "{263, 148}".to_string(),
+        itemCornerRadius: 10,
+        banners: banner,
+    })
 }

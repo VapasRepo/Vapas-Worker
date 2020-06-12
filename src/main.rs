@@ -38,6 +38,12 @@ async fn main() -> io::Result<()> {
             .service(modules::core_info::default_icons)
             // Sileo featured JSON
             .service(modules::core_info::sileo_featured)
+            // Payment endpoint
+            .service(modules::payment_handling::payment_endpoint)
+            // Payment endpoint status
+            .service(modules::payment_handling::payment_response)
+            // Payment endpoint info
+            .service(modules::payment_handling::payment_info)
             // Cydia redirect URL
             .external_resource(
                 "cydiaRedirect",

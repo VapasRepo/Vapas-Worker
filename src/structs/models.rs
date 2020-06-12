@@ -45,3 +45,10 @@ pub struct VapasRelease {
     pub components: String,
     pub description: String,
 }
+
+#[derive(Queryable)]
+pub struct VapasPaymentInfo {
+    pub name: String,
+    pub description: String,
+    pub banner_message: String,
+}

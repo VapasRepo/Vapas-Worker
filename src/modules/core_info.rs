@@ -1,9 +1,7 @@
 extern crate actix_web;
 extern crate diesel;
 extern crate dotenv;
-extern crate dotenv_codegen;
 
-use self::actix_web::error::PayloadError::Http2Payload;
 use self::actix_web::http::header::{ContentDisposition, DispositionType};
 use self::actix_web::HttpRequest;
 use actix_files::NamedFile;

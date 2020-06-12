@@ -3,13 +3,19 @@ extern crate diesel;
 extern crate dotenv;
 extern crate dotenv_codegen;
 
-use actix_web::{dev::BodyEncoding, get, http::ContentEncoding, web, HttpResponse, Responder};
+use actix_files::NamedFile;
+use actix_web::{
+    dev::BodyEncoding, get, http::ContentEncoding, web, Error, HttpResponse, Responder,
+};
 
 use diesel::prelude::*;
 
 use dotenv::dotenv;
 use std::env;
 
+use self::actix_web::error::PayloadError::Http2Payload;
+use self::actix_web::http::header::{ContentDisposition, DispositionType};
+use self::actix_web::HttpRequest;
 use crate::services::database::DbPool;
 
 #[get("/Release")]
@@ -99,22 +105,37 @@ pub async fn packages(pool: web::Data<DbPool>) -> impl Responder {
         .body(final_payload)
 }
 
-/**
 #[get("/CydiaIcon.png")]
-async pub fn cydia_icon() -> Option<NamedFile> {
-    NamedFile::open("assets/cyidaIcon.png").ok()
+pub async fn cydia_icon() -> Result<NamedFile, Error> {
+    Ok(NamedFile::open("assets/CydiaIcon.png")?
+        .use_last_modified(true)
+        .set_content_disposition(ContentDisposition {
+            disposition: DispositionType::Attachment,
+            parameters: vec![],
+        }))
 }
 
 #[get("/footerIcon.png")]
-async pub fn footer_icon() -> Option<NamedFile> {
-    NamedFile::open("assets/footerIcon.png").ok()
+pub async fn footer_icon() -> Result<NamedFile, Error> {
+    Ok(NamedFile::open("assets/footerIcon.png")?
+        .use_last_modified(true)
+        .set_content_disposition(ContentDisposition {
+            disposition: DispositionType::Attachment,
+            parameters: vec![],
+        }))
 }
 
-#[get("/icons/<name>")]
-async pub fn default_icons(name: String) -> Option<NamedFile> {
-    NamedFile::open(format!("assets/icons/{}.png", name)).ok()
+#[get("/icons/{name}")]
+pub async fn default_icons(req: HttpRequest) -> Result<NamedFile, Error> {
+    let name = req.match_info().get("name").unwrap();
+    println!("File name requested: {}", name);
+    Ok(NamedFile::open(format!("assets/icons/{}.png", name))?
+        .use_last_modified(true)
+        .set_content_disposition(ContentDisposition {
+            disposition: DispositionType::Attachment,
+            parameters: vec![],
+        }))
 }
-**/
 
 #[get("/sileo-featured.json")]
 pub async fn sileo_featured(pool: web::Data<DbPool>) -> impl Responder {

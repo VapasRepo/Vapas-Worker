@@ -17,7 +17,7 @@ routes.get('/./Release', function mainHandler (req, res) {
 })
 
 routes.get('/./CyidaIcon.png', function mainHandler (req, res) {
-  res.sendFile('./assets/cyidaIcon.png', { root: './' })
+  res.sendFile('./assets/CydiaIcon.png', { root: './' })
 })
 
 routes.get('/./Packages.gz', compression(), function mainHandler (req, res) {

@@ -1,5 +1,4 @@
 use diesel::pg::types::date_and_time::PgDate;
-use diesel::pg::types::sql_types::Array;
 
 #[derive(Queryable)]
 pub struct PackageInformation {
@@ -17,14 +16,14 @@ pub struct PackageInformation {
     pub version_release_date: PgDate,
     pub version_size: i32,
     pub version_hash: String,
-    pub version_changes: Array<String>,
+    pub version_changes: Vec<String>,
     pub short_description: String,
     pub long_description: String,
     pub icon: String,
     pub tint: String,
     pub header_image: String,
-    pub screenshots: Array<String>,
-    pub known_issues: Array<String>,
+    pub screenshots: Vec<String>,
+    pub known_issues: Vec<String>,
 }
 
 #[derive(Queryable)]

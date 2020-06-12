@@ -28,6 +28,10 @@ async fn main() -> io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .data(db_pool.clone())
+            // Core repo info
+            .service(modules::core_info::release)
+            // All packages
+            .service(modules::core_info::packages)
             // Cydia redirect URL
             .external_resource(
                 "cydiaRedirect",
@@ -39,7 +43,7 @@ async fn main() -> io::Result<()> {
                 ),
             )
     })
-    .bind(format!("{}:{}", "127.0.0.1", "3030"))?
+    .bind(format!("{}:{}", "0.0.0.0", "1406"))?
     .run()
     .await
 }

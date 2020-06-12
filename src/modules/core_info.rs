@@ -39,7 +39,7 @@ pub async fn release(pool: web::Data<DbPool>) -> impl Responder {
     HttpResponse::Ok().body(final_payload)
 }
 
-#[get("/Packages.gz")]
+#[get("/Packages")]
 pub async fn packages(pool: web::Data<DbPool>) -> impl Responder {
     dotenv().ok();
 

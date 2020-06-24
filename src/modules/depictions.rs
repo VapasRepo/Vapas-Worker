@@ -1,7 +1,3 @@
-extern crate rocket;
-extern crate mongodb;
-extern crate serde_json;
-extern crate dotenv_codegen;
 extern crate dotenv;
 
 use dotenv::dotenv;

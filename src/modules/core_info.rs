@@ -2,19 +2,20 @@ extern crate actix_web;
 extern crate diesel;
 extern crate dotenv;
 
-use self::actix_web::http::header::{ContentDisposition, DispositionType};
-use self::actix_web::HttpRequest;
+use std::env;
+
 use actix_files::NamedFile;
 use actix_web::{
-    dev::BodyEncoding, get, http::ContentEncoding, web, Error, HttpResponse, Responder,
+    dev::BodyEncoding, Error, get, http::ContentEncoding, HttpResponse, Responder, web,
 };
-
 use diesel::prelude::*;
 use dotenv::dotenv;
 use serde::Serialize;
-use std::env;
 
 use crate::services::database::DbPool;
+
+use self::actix_web::http::header::{ContentDisposition, DispositionType};
+use self::actix_web::HttpRequest;
 
 #[get("/Release")]
 pub async fn release(pool: web::Data<DbPool>) -> impl Responder {
@@ -134,24 +135,6 @@ pub async fn default_icons(req: HttpRequest) -> Result<NamedFile, Error> {
         }))
 }
 
-// Sileo Featured Struct
-#[derive(Serialize)]
-struct SileoFeaturedStruct {
-    class: String,
-    itemSize: String,
-    itemCornerRadius: u64,
-    banners: Vec<SileoFeaturedBannerStruct>,
-}
-
-// Sileo Featured Banner Struct
-#[derive(Serialize)]
-struct SileoFeaturedBannerStruct {
-    url: String,
-    title: String,
-    package: String,
-    hideShadow: bool,
-}
-
 #[get("/sileo-featured.json")]
 pub async fn sileo_featured(pool: web::Data<DbPool>) -> impl Responder {
     use crate::structs::schema::vapas_featured::dsl::*;
@@ -162,10 +145,10 @@ pub async fn sileo_featured(pool: web::Data<DbPool>) -> impl Responder {
         .load::<crate::structs::models::VapasFeatured>(&conn)
         .expect("Error loading featured information");
 
-    let mut banner: Vec<SileoFeaturedBannerStruct> = Vec::new();
+    let mut banner: Vec<crate::structs::core_info::SileoFeaturedBannerStruct> = Vec::new();
 
     for featured in results {
-        banner.push(SileoFeaturedBannerStruct {
+        banner.push(crate::structs::core_info::SileoFeaturedBannerStruct {
             url: featured.url,
             title: featured.title,
             package: featured.package,
@@ -173,7 +156,7 @@ pub async fn sileo_featured(pool: web::Data<DbPool>) -> impl Responder {
         })
     }
 
-    HttpResponse::Ok().json(SileoFeaturedStruct {
+    HttpResponse::Ok().json(crate::structs::core_info::SileoFeaturedStruct {
         class: "FeaturedBannersView".to_string(),
         itemSize: "{263, 148}".to_string(),
         itemCornerRadius: 10,

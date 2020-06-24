@@ -6,16 +6,14 @@ use std::env;
 
 use actix_files::NamedFile;
 use actix_web::{
-    dev::BodyEncoding, Error, get, http::ContentEncoding, HttpResponse, Responder, web,
+    dev::BodyEncoding, Error, get, http::ContentEncoding, HttpRequest, HttpResponse, Responder, web,
 };
 use diesel::prelude::*;
 use dotenv::dotenv;
-use serde::Serialize;
 
 use crate::services::database::DbPool;
 
 use self::actix_web::http::header::{ContentDisposition, DispositionType};
-use self::actix_web::HttpRequest;
 
 #[get("/Release")]
 pub async fn release(pool: web::Data<DbPool>) -> impl Responder {

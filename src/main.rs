@@ -1,16 +1,17 @@
-#[macro_use]
-extern crate diesel;
 extern crate bson;
 extern crate chrono;
+#[macro_use]
+extern crate diesel;
 extern crate dotenv;
 extern crate serde_derive;
 extern crate serde_json;
 
-use actix_web::{App, HttpServer};
 use std::{env, io};
 
-use crate::services::database::establish_connection;
+use actix_web::{App, HttpServer};
 use dotenv::dotenv;
+
+use crate::services::database::establish_connection;
 
 pub mod modules;
 pub mod services;
@@ -44,6 +45,10 @@ async fn main() -> io::Result<()> {
             .service(modules::payment_handling::payment_response)
             // Payment endpoint info
             .service(modules::payment_handling::payment_info)
+            // Native Depictions
+            .service(modules::depictions::sileo_depiction)
+            // Web Depictions
+            .service(modules::depictions::depiction)
             // Cydia redirect URL
             .external_resource(
                 "cydiaRedirect",

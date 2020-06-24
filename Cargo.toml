@@ -24,6 +24,6 @@ serde_json = "1.0"
 serde_derive = "1.0.106"
 serde = "1.0.106"
 flate2 = "1.0.14"
-diesel = { version = "1.4.4", features = ["postgres", "r2d2"]}
+diesel = { version = "1.4.4", features = ["postgres", "r2d2", "chrono"]}
 chrono = "0.4"
 parking_lot = "0.10.2"

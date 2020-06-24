@@ -1,3 +1,7 @@
+#![allow(non_snake_case)]
+
+use serde::Serialize;
+
 // Sileo Featured Struct
 #[derive(Serialize)]
 pub struct SileoFeaturedStruct {

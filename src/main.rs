@@ -1,94 +1,67 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-
-#[macro_use] extern crate rocket;
-#[macro_use] extern crate dotenv_codegen;
-#[macro_use] extern crate diesel;
-#[macro_use] extern crate rocket_contrib;
-extern crate dotenv;
+extern crate bson;
 extern crate chrono;
+#[macro_use]
+extern crate diesel;
+extern crate dotenv;
 extern crate serde_derive;
 extern crate serde_json;
-extern crate bson;
 
-use rocket_contrib::serve::StaticFiles;
+use std::{env, io};
+
+use actix_web::{App, HttpServer};
 use dotenv::dotenv;
-use rocket::http::hyper::header::Location;
+
+use crate::services::database::establish_connection;
 
 pub mod modules;
 pub mod services;
 pub mod structs;
 
-#[derive(Responder)]
-#[response(status=303)]
-struct RawRedirect((), Location);
-
-#[get("/cydiaRedirect")]
-fn cydia_redirect() -> RawRedirect {
-    RawRedirect((), Location(format!("{}#{}{}", "cydia://url/https://cydia.saurik.com/api/share", "?source=", dotenv!("URL"))))
-}
-
-// Database pooling with Rocket
-#[database("vapasdb")]
-struct VapasDBConn(rocket_contrib::databases::diesel::PgConnection);
-
-fn main() {
+#[actix_rt::main]
+async fn main() -> io::Result<()> {
     dotenv().ok();
 
-    rocket::ignite()
-        // Internal main "/" routes
-        .mount(
-            "/",
-            routes![cydia_redirect]
-        )
+    // Database pooling with ActiX
+    let db_pool = establish_connection();
 
-        // Static public files
-        .mount(
-            "/",
-            StaticFiles::from("public/")
-        )
-
-        // Core repo information routes
-        .mount(
-            "/",
-            routes![modules::core_info::release, modules::core_info::packages, modules::core_info::cydia_icon, modules::core_info::footer_icon, modules::core_info::default_icons, modules::core_info::sileo_featured]
-        )
-
-        // Core repo information routes for Cydia
-        .mount(
-            "/./",
-            routes![modules::core_info::release, modules::core_info::packages, modules::core_info::cydia_icon]
-        )
-
-
-        // Depictions routes
-        /* *
-        .mount(
-            "/",
-            routes![modules::depictions::depiction, modules::depictions::sileo_depiction]
-        )
-        **/
-
-        // Payment information routes
-        .mount(
-            "/",
-            routes![modules::payment_handling::payment_endpoint, modules::payment_handling::payment_response]
-        )
-
-        // Payment routes
-        .mount(
-            "/payment/",
-            routes![modules::payment_handling::payment_info]
-        )
-
-        // Attach Sentry Fairing
-        .attach(
-            services::RocketSentry::RocketSentry::fairing()
-        )
-
-        // Attach Rocket Diesel Pooling
-        .attach(
-            VapasDBConn::fairing()
-        )
-
-        .launch();
+    HttpServer::new(move || {
+        App::new()
+            .data(db_pool.clone())
+            // Core repo info
+            .service(modules::core_info::release)
+            // All packages
+            .service(modules::core_info::packages)
+            // Cydia Icon
+            .service(modules::core_info::cydia_icon)
+            // Footer Icon
+            .service(modules::core_info::footer_icon)
+            // Default Icons
+            .service(modules::core_info::default_icons)
+            // Sileo featured JSON
+            .service(modules::core_info::sileo_featured)
+            // Payment endpoint
+            .service(modules::payment_handling::payment_endpoint)
+            // Payment endpoint status
+            .service(modules::payment_handling::payment_response)
+            // Payment endpoint info
+            .service(modules::payment_handling::payment_info)
+            // Native Depictions
+            .service(modules::depictions::sileo_depiction)
+            // Web Depictions
+            .service(modules::depictions::depiction)
+            // Cydia redirect URL
+            .external_resource(
+                "cydiaRedirect",
+                format!(
+                    "{}#{}{}",
+                    "cydia://url/https://cydia.saurik.com/api/share",
+                    "?source=",
+                    env::var("URL").unwrap()
+                ),
+            )
+    })
+    .workers(env::var("THREADS").unwrap().parse().unwrap())
+    .bind(format!("{}:{}", "0.0.0.0", "1406"))?
+    .run()
+    .await
 }

@@ -35,6 +35,14 @@ table! {
 }
 
 table! {
+    vapas_payment_info (name) {
+        name -> Text,
+        description -> Text,
+        banner_message -> Text,
+    }
+}
+
+table! {
     vapas_release (origin) {
         origin -> Text,
         label -> Text,
@@ -50,5 +58,6 @@ table! {
 allow_tables_to_appear_in_same_query!(
     package_information,
     vapas_featured,
+    vapas_payment_info,
     vapas_release,
 );

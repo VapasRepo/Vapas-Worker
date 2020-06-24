@@ -1,151 +1,171 @@
-extern crate rocket;
-extern crate mongodb;
-extern crate serde_json;
-extern crate dotenv_codegen;
+extern crate actix_web;
+extern crate diesel;
 extern crate dotenv;
 
-use rocket_contrib::json::{Json, JsonValue};
+use std::env;
 
-use rocket::response::content;
+use actix_web::{get, HttpResponse, Responder, web};
+use diesel::prelude::*;
+use dotenv::dotenv;
+use serde_json::*;
 
-use crate::services::database::{find_documents};
-use std::ptr::null;
+use crate::services::database::DbPool;
+use crate::structs::general::*;
 
-#[get("/sileodepiction/<_packageid>")]
-pub fn sileo_depiction(_packageid: String) -> content::Json<String> {
+#[get("/sileodepiction/{packageid}")]
+pub async fn sileo_depiction(pool: web::Data<DbPool>, info: web::Path<PackageID>) -> impl Responder {
     // TODO: Implement Native (Sileo/Installer) Depictions
-    let document = find_documents("vapasPackages".parse().unwrap(), doc! {"packageName" : _packageid});
+    dotenv().ok();
 
-    let mut package_info = doc!{};
-    let mut  package_price = "N/A";
-    let mut package_changelog = "".to_owned();
-    let mut package_issues = "".to_owned();
-    let mut package_screenshots = "";
+    use crate::structs::schema::package_information::dsl::*;
 
-    for doc in document {
-        package_info = doc.get("package").and_then(bson::Bson::Document);
-    }
+    let conn = pool.get().unwrap();
 
-    for i in package_info.get(&"currentVersion").unwrap().as_document().unwrap().get(&"changeLog").into_iter() {
-        package_changelog.push_str(format!("* {}\n", i).as_ref())
-    }
+    let results = package_information
+        .filter(package_id.eq(&info.packageid))
+        .load::<crate::structs::models::PackageInformation>(&conn)
+        .expect("Error loading package information");
 
-    for i in package_info.get(&"knownIssues").into_iter(){
-        package_issues.push_str(format!("* {}\n", i).as_ref())
-    }
+    let mut package_price: String = String::new();
+    let mut package_changelog: String = String::new();
+    let mut package_issues: String = String::new();
+    let mut package_screenshots = Vec::new();
 
-    if package_info.get(&"price").unwrap().as_str().unwrap() == "0" {
-        package_price = "Free!"
-    } else {
-        package_price = package_info.get(&"price").unwrap().as_str().unwrap()
-    }
+    let mut package_header: String = String::new();
+    let mut package_tint: String = String::new();
 
-    return content::Json(json!({
-        "minVersion": "0.1",
-        "headerImage": package_info.get(&"headerImage").unwrap(),
-        "tintColor": package_info.get(&"tint").unwrap(),
-        "tabs": [{
-            "tabname": "Details",
-            "views": [{
-                "title": package_info.get(&"shortDescription").unwrap(),
-                "useBoldText": true,
-                "useBottomMargin": false,
-                "class": "DepictionSubheaderView"
-            }, {
-                "markdown": package_info.get(&"longDescription").unwrap(),
-                "useSpacing": true,
-                "class": "DepictionMarkdownView"
-            }, {
-                "class": "DepictionSeparatorView"
-            }, {
-                "title": "Screenshots",
-                "class": "DepictionHeaderView"
-            }, {
-                "itemCornerRadius": 6,
-                "itemSize": "{160, 275.41333333333336}",
-                "screenshots": [],
-                "ipad": {
+    let mut package_data = serde_json::Value::Null;
+
+    for information in results {
+        for i in information.version_changes {
+            package_changelog.push_str(&format!("* {}\n", i));
+        }
+
+        for i in information.known_issues {
+            package_issues.push_str(&format!("* {}\n", i));
+        }
+
+        for i in information.screenshots {
+            // Todo: Add accessibility text in database
+            package_screenshots.push(json!({"url": i, "accessibilityText": "Screenshot"}));
+        }
+
+        if information.price == 0 {
+            package_price = "Free!".to_string();
+        } else {
+            package_price = information.price.to_string();
+        }
+
+        package_header = information.header_image;
+        package_tint = information.tint;
+
+        package_data = json!({
+            "minVersion": "0.1",
+            "headerImage": package_header,
+            "tintColor": package_tint,
+            "tabs": [{
+                "tabname": "Details",
+                "views": [{
+                    "title": information.name,
+                    "useBoldText": true,
+                    "useBottomMargin": false,
+                    "class": "DepictionSubheaderView"
+                }, {
+                    "markdown": information.long_description,
+                    "useSpacing": true,
+                    "class": "DepictionMarkdownView"
+                }, {
+                    "class": "DepictionSeparatorView"
+                }, {
+                    "title": "Screenshots",
+                    "class": "DepictionHeaderView"
+                }, {
                     "itemCornerRadius": 6,
                     "itemSize": "{160, 275.41333333333336}",
-                    "screenshots": [],
+                    "screenshots": package_screenshots,
                     "class": "DepictionScreenshotsView"
-                },
-                "class": "DepictionScreenshotsView"
-            }, {
-                "class": "DepictionSeparatorView"
-            }, {
-                "title": "Known Issues",
-                "class": "DepictionHeaderView"
-            }, {
-                "markdown": package_issues,
-                "useSpacing": false,
-                "class": "DepictionMarkdownView"
-            }, {
-                "class": "DepictionSeparatorView"
-            }, {
-                "title": "Package Information",
-                "class": "DepictionHeaderView"
-            }, {
-                "title": "Version",
-                "text": package_info.get(&"currentVersion").unwrap().as_document().unwrap().get(&"version").unwrap(),
-                "class": "DepictionTableTextView"
-            }, {
-                "title": "Released",
-                "text": package_info.get(&"currentVersion").unwrap().as_document().unwrap().get(&"dateReleased").unwrap(),
-                "class": "DepictionTableTextView"
-            }, {
-                "title": "Price",
-                "text": package_price,
-                "class": "DepictionTableTextView"
-            }, {
-                "class": "DepictionSeparatorView"
-            }, {
-                "title": "Developer Information",
-                "class": "DepictionHeaderView"
-            }, {
+                }, {
+                    "class": "DepictionSeparatorView"
+                }, {
+                    "title": "Known Issues",
+                    "class": "DepictionHeaderView"
+                }, {
+                    "markdown": package_issues,
+                    "useSpacing": false,
+                    "class": "DepictionMarkdownView"
+                }, {
+                    "class": "DepictionSeparatorView"
+                }, {
+                    "title": "Package Information",
+                    "class": "DepictionHeaderView"
+                }, {
+                    "title": "Version",
+                    "text": information.version,
+                    "class": "DepictionTableTextView"
+                }, {
+                    "title": "Size",
+                    "text": information.version_size.to_string(),
+                    "class": "DepictionTableTextView"
+                }, {
+                    "title": "Released",
+                    "text": information.version_release_date.format("%b %e %Y").to_string(),
+                    "class": "DepictionTableTextView"
+                }, {
+                    "title": "Price",
+                    "text": package_price,
+                    "class": "DepictionTableTextView"
+                }, {
+                    "class": "DepictionSeparatorView"
+                }, {
+                    "title": "Developer Information",
+                    "class": "DepictionHeaderView"
+                }, {
+                    "title": "Developer",
+                    "text": information.developer_name,
+                    "class": "DepictionTableTextView"
+                }, {
+                    "title": format!("Support ({})", information.support_name),
+                    "action": information.support_url,
+                    "class": "DepictionTableButtonView"
+                }, {
+                    "class": "DepictionSeparatorView"
+                }, {
+                    "spacing": 10,
+                    "class": "DepictionSpacerView"
+                }, {
+                    "URL": format!("{}/footerIcon.png", env::var("URL").unwrap()),
+                    "width": 125,
+                    "height": 67.5,
+                    "cornerRadius": 0,
+                    "alignment": 1,
+                    "class": "DepictionImageView"
+                }],
                 "class": "DepictionStackView"
             }, {
-                "title": "Developer",
-                "text": package_info.get(&"developer").unwrap(),
-                "class": "DepictionTableTextView"
-            }, {
-                "title": format!("Support ({})", package_info.get(&"supportLink").unwrap().as_document().unwrap().get(&"name").unwrap()),
-                "action": package_info.get(&"supportLink").unwrap().as_document().unwrap().get(&"url").unwrap(),
-                "class": "DepictionTableButtonView"
-            }, {
-                "class": "DepictionSeparatorView"
-            }, {
-                "spacing": 10,
-                "class": "DepictionSpacerView"
-            }, {
-                "URL": format!("{}/footerIcon.png", dotenv!("URL")),
-                "width": 125,
-                "height": 67.5,
-                "cornerRadius": 0,
-                "alignment": 1,
-                "class": "DepictionImageView"
+                "tabname": "Changelog",
+                "views": [{
+                    "title": format!("Version {}", information.version),
+                    "useBoldText": true,
+                    "useBottomMargin": true,
+                    "class": "DepictionSubheaderView"
+                }, {
+                    "markdown": package_changelog,
+                    "useSpacing": false,
+                    "class": "DepictionMarkdownView"
+                }],
+                "class": "DepictionStackView"
             }],
-            "class": "DepictionStackView"
-        }, {
-            "tabname": "Changelog",
-            "views": [{
-                "title": format!("Version {}", package_info.get(&"currentVersion").unwrap().as_document().unwrap().get(&"version").unwrap()),
-                "useBoldText": true,
-                "useBottomMargin": true,
-                "class": "DepictionSubheaderView"
-            }, {
-                "markdown": package_changelog,
-                "useSpacing": false,
-                "class": "DepictionMarkdownView"
-            }],
-            "class": "DepictionStackView"
-        }],
-        "class": "DepictionTabView"
-    }).to_string())
+            "class": "DepictionTabView"
+        })
+    }
+
+    HttpResponse::Ok()
+        .json(package_data)
 }
 
-#[get("/depiction/<_packageid>")]
-pub fn depiction(_packageid: String) -> String {
+#[get("/depiction/{packageid}")]
+pub async fn depiction(pool: web::Data<DbPool>, info: web::Path<PackageID>) -> impl Responder {
     // TODO: Implement Web (Cyida/Zebra/Online) Depictions
-    "Not Implemented".into()
+    HttpResponse::Ok()
+        .body("Not Implemented")
 }

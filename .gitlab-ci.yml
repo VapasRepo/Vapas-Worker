@@ -1,0 +1,29 @@
+stages:
+  - build
+  - test
+
+include:
+  - template: SAST.gitlab-ci.yml
+
+rust-latest:
+  stage: build
+  image: rust:latest
+  before_script:
+    - cargo install --force cargo-audit
+    - cargo generate-lockfile
+  script:
+    - cargo build --verbose
+    - cargo test --verbose
+    - cargo audit
+
+rust-nightly:
+  stage: build
+  image: rustlang/rust:nightly
+  before_script:
+    - cargo install --force cargo-audit
+    - cargo generate-lockfile
+  script:
+    - cargo build --verbose
+    - cargo test --verbose
+    - cargo audit
+  allow_failure: true

@@ -1,5 +1,0 @@
-language: rust
-rust:
-  - nightly
-before_script:
-  - cp .env.example .env

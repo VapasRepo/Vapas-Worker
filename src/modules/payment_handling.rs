@@ -2,14 +2,15 @@ extern crate actix_web;
 extern crate diesel;
 extern crate dotenv;
 
-use actix_web::{get, web, HttpResponse, Responder};
+use std::env;
 
+use actix_web::{get, HttpResponse, Responder, web};
 use diesel::prelude::*;
 use dotenv::dotenv;
 use serde::Serialize;
-use std::env;
 
 use crate::services::database::DbPool;
+use crate::structs::payment_handling::*;
 
 #[get("/payment_endpoint")]
 pub async fn payment_endpoint() -> impl Responder {
@@ -21,22 +22,6 @@ pub async fn payment_endpoint() -> impl Responder {
 #[get("/payment")]
 pub async fn payment_response() -> impl Responder {
     HttpResponse::Ok()
-}
-
-// Payment information
-#[derive(Serialize)]
-struct PaymentInformationStruct {
-    name: String,
-    icon: String,
-    description: String,
-    authentication_banner: PaymentInformationBannerStruct,
-}
-
-// Payment information banner
-#[derive(Serialize)]
-struct PaymentInformationBannerStruct {
-    message: String,
-    button: String,
 }
 
 #[get("/payment/info")]

@@ -51,3 +51,14 @@ pub struct VapasPaymentInfo {
     pub description: String,
     pub banner_message: String,
 }
+
+#[derive(Queryable)]
+pub struct VapasUsers {
+    pub id: String,
+    pub owned_packages: Vec<String>,
+    pub is_developer: bool,
+    pub is_admin: bool,
+    pub stripe_token: String,
+    pub stripe_publish_key: String,
+    pub stripe_user_id: String
+}

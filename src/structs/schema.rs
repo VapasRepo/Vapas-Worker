@@ -55,6 +55,18 @@ table! {
     }
 }
 
+table! {
+    vapas_users (id) {
+        id -> Text,
+        owned_packages -> Array<Text>,
+        is_developer -> Bool,
+        is_admin -> Bool,
+        stripe_token -> Text,
+        stripe_publish_key -> Text,
+        stripe_user_id -> Text
+    }
+}
+
 allow_tables_to_appear_in_same_query!(
     package_information,
     vapas_featured,

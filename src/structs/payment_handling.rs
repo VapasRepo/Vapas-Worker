@@ -1,3 +1,5 @@
+use serde::Serialize;
+
 // Payment information
 #[derive(Serialize)]
 pub struct PaymentInformationStruct {

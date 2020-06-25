@@ -7,7 +7,6 @@ use std::env;
 use actix_web::{get, HttpResponse, Responder, web};
 use diesel::prelude::*;
 use dotenv::dotenv;
-use serde::Serialize;
 
 use crate::services::database::DbPool;
 use crate::structs::payment_handling::*;

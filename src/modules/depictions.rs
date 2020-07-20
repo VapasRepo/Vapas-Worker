@@ -53,7 +53,7 @@ pub async fn sileo_depiction(pool: web::Data<DbPool>, info: web::Path<PackageID>
         if information.price == 0 {
             package_price = "Free!".to_string();
         } else {
-            package_price = information.price.to_string();
+            package_price = format!("${}", information.price.to_string());
         }
 
         package_header = information.header_image;
@@ -66,20 +66,6 @@ pub async fn sileo_depiction(pool: web::Data<DbPool>, info: web::Path<PackageID>
             "tabs": [{
                 "tabname": "Details",
                 "views": [{
-                    "title": information.name,
-                    "useBoldText": true,
-                    "useBottomMargin": false,
-                    "class": "DepictionSubheaderView"
-                }, {
-                    "markdown": information.long_description,
-                    "useSpacing": true,
-                    "class": "DepictionMarkdownView"
-                }, {
-                    "class": "DepictionSeparatorView"
-                }, {
-                    "title": "Screenshots",
-                    "class": "DepictionHeaderView"
-                }, {
                     "itemCornerRadius": 6,
                     "itemSize": "{160, 275.41333333333336}",
                     "screenshots": package_screenshots,
@@ -87,11 +73,15 @@ pub async fn sileo_depiction(pool: web::Data<DbPool>, info: web::Path<PackageID>
                 }, {
                     "class": "DepictionSeparatorView"
                 }, {
+                    "markdown": information.long_description,
+                    "useSpacing": true,
+                    "class": "DepictionMarkdownView"
+                }, {
                     "title": "Known Issues",
                     "class": "DepictionHeaderView"
                 }, {
                     "markdown": package_issues,
-                    "useSpacing": false,
+                    "useSpacing": true,
                     "class": "DepictionMarkdownView"
                 }, {
                     "class": "DepictionSeparatorView"
@@ -165,7 +155,7 @@ pub async fn sileo_depiction(pool: web::Data<DbPool>, info: web::Path<PackageID>
 
 #[get("/depiction/{packageid}")]
 pub async fn depiction(pool: web::Data<DbPool>, info: web::Path<PackageID>) -> impl Responder {
-    // TODO: Implement Web (Cyida/Zebra/Online) Depictions
+    // TODO: Implement Web (Cydia/Zebra/Online) Depictions
     HttpResponse::Ok()
-        .body("Not Implemented")
+        .body(format!("Not Implemented. You requested the web depiction for {}. The database connection count is {} with {} idle connections.", &info.packageid, pool.state().connections, pool.state().idle_connections))
 }

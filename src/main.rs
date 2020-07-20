@@ -24,6 +24,8 @@ async fn main() -> io::Result<()> {
     // Database pooling with ActiX
     let db_pool = establish_connection();
 
+    println!("Vapas Worker OK!");
+
     HttpServer::new(move || {
         App::new()
             .data(db_pool.clone())
@@ -45,6 +47,14 @@ async fn main() -> io::Result<()> {
             .service(modules::payment_handling::payment_response)
             // Payment endpoint info
             .service(modules::payment_handling::payment_info)
+            // Payment user info
+            .service(modules::payment_handling::user_info)
+            // Payment authentication
+            .service(modules::payment_handling::authenticate)
+            // Payment deauth
+            .service(modules::payment_handling::sign_out)
+            // Payment package info
+            .service(modules::payment_handling::package_info)
             // Native Depictions
             .service(modules::depictions::sileo_depiction)
             // Web Depictions

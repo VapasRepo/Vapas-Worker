@@ -9,7 +9,7 @@ pub struct PackageInformation {
     pub depends: String,
     pub support_name: String,
     pub support_url: String,
-    // TODO: Oops, this should be a double because cents exists
+    // TODO: Oops, this should be a float because cents exists
     pub price: i32,
     pub version: String,
     pub version_release_date: chrono::NaiveDate,
@@ -54,11 +54,11 @@ pub struct VapasPaymentInfo {
 
 #[derive(Queryable)]
 pub struct VapasUsers {
-    pub id: String,
-    pub owned_packages: Vec<String>,
+    pub user_id: String,
+    pub owned_packages: Option<Vec<String>>,
     pub is_developer: bool,
     pub is_admin: bool,
-    pub stripe_token: String,
-    pub stripe_publish_key: String,
-    pub stripe_user_id: String
+    pub stripe_token: Option<String>,
+    pub stripe_publish_key: Option<String>,
+    pub stripe_user_id: Option<String>
 }

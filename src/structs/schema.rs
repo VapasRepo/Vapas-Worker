@@ -55,9 +55,22 @@ table! {
     }
 }
 
+table! {
+    vapas_users (user_id) {
+        user_id -> Text,
+        owned_packages -> Nullable<Array<Text>>,
+        is_developer -> Bool,
+        is_admin -> Bool,
+        stripe_token -> Nullable<Text>,
+        stripe_publish_key -> Nullable<Text>,
+        stripe_user_id -> Nullable<Text>,
+    }
+}
+
 allow_tables_to_appear_in_same_query!(
     package_information,
     vapas_featured,
     vapas_payment_info,
     vapas_release,
+    vapas_users,
 );

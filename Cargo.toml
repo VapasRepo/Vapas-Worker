@@ -27,3 +27,4 @@ flate2 = "1.0.14"
 diesel = { version = "1.4.4", features = ["postgres", "r2d2", "chrono"]}
 chrono = "0.4"
 parking_lot = "0.10.2"
+reqwest = "0.10.6"

@@ -3,6 +3,3 @@
 
 [print_schema]
 file = "src/structs/schema.rs"
-
-[migrations_directory]
-dir = "migrations"

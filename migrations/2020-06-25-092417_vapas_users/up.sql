@@ -1,6 +1,6 @@
 create table vapas_users
 (
-    id text not null,
+    user_id text not null,
     owned_packages text[],
     is_developer bool default false not null,
     is_admin bool default false not null,
@@ -10,8 +10,8 @@ create table vapas_users
 );
 
 create unique index vapas_users_id_uindex
-    on vapas_users (id);
+    on vapas_users (user_id);
 
 alter table vapas_users
     add constraint vapas_users_pk
-        primary key (id);
+        primary key (user_id);

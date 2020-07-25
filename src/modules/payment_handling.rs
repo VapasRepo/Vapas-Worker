@@ -12,6 +12,7 @@ use serde_json::*;
 use crate::services::database::DbPool;
 use crate::structs::general::PackageID;
 use crate::structs::payment_handling::*;
+use self::actix_web::web::Query;
 
 // Payment Endpoint Setup
 
@@ -74,11 +75,43 @@ pub async fn user_info() -> impl Responder {
 }
 
 #[get("/payment/authenticate")]
-pub async fn authenticate() -> impl Responder {
-    // TODO: Implement Auth0 here
+pub async fn authenticate(info: Query<AuthQuery>) -> impl Responder {
     HttpResponse::TemporaryRedirect()
-        // junk data from the sileo documentation
-        .header(http::header::LOCATION, "sileo://authentication_success?token=BEARER%20f2ca1bb6c7e907d06dafe4687e579fce76b37e4e93b7605022da52e6ccc26fd2&payment_secret=jr38tgh9t832gew89gt3j8y4hjgmf92r1jt38gfhrq5jtwyhsgfekart0gh9fet8yhrgw89e3qw6h4gfn5ty5hgrfgh34ty5894g")
+        .header(http::header::LOCATION, format!("https://{}/authorize?response_type=code&client_id={}&redirect_uri={}/payment/auth0callback&state={}",
+        env::var("auth0URL").unwrap(),
+        env::var("auth0clientID").unwrap(),
+        env::var("URL").unwrap(),
+        info.udid))
+        .finish()
+}
+
+#[get("/payment/auth0callback")]
+pub async fn auth0callback(info: Query<Auth0CallbackQuery>) -> impl Responder {
+    println!("{}", info.code);
+    let post_client = reqwest::Client::new();
+    let response = post_client
+        .post(&format!("https://{}/oauth/token", env::var("auth0URL").unwrap()))
+        .header("Content-Type", "application/json")
+        .body(to_vec(&json!({
+            "grant_type": "authorization_code",
+            "client_id": env::var("auth0clientID").unwrap(),
+            "client_secret": env::var("auth0clientSecret").unwrap(),
+            "code": &info.code,
+            "redirect_uri": "https://development.vapas.gq"
+        })).unwrap())
+        .send()
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap();
+    println!("{}", response);
+    let response_json = serde_json::from_str::<Auth0CodeQuery>(&response).unwrap();
+    println!("{}", response_json.access_token);
+    HttpResponse::TemporaryRedirect()
+        .header(http::header::LOCATION, format!("sileo://authentication_success?token={}&payment_secret={}",
+        format!("BEARER {}", response_json.access_token),
+        "jr38tgh9t832gew89gt3j8y4hjgmf92r1jt38gfhrq5jtwyhsgfekart0gh9fet8yhrgw89e3qw6h4gfn5ty5hgrfgh34ty5894g"))//TODO: Get a payment secret
         .finish()
 }
 
@@ -92,31 +125,46 @@ pub async fn sign_out() -> impl Responder {
 }
 
 #[post("/payment/package/{packageid}/info")]
-pub async fn package_info(pool: web::Data<DbPool>, info: web::Path<PackageID>) -> impl Responder {
+pub async fn package_info(pool: web::Data<DbPool>, info: web::Path<PackageID>, post: web::Json<SileoPackageRequest>) -> impl Responder {
     use crate::structs::schema::package_information::dsl::*;
+    use crate::structs::schema::vapas_users::dsl::*;
 
     let conn = pool.get().unwrap();
+
+    let auth0_id = "auth0|5d3c133d96ba380cb390ee59".to_string();// Temporary hardcoded auth0 id
 
     let results = package_information
         .filter(package_id.eq(&info.packageid))
         .load::<crate::structs::models::PackageInformation>(&conn)
         .expect("Error loading package information");
 
+    let user_results = vapas_users
+        .filter(user_id.eq(auth0_id))
+        .load::<crate::structs::models::VapasUsers>(&conn)
+        .expect("Error loading user information");
+
     let mut package_data = serde_json::Value::Null;
+
+    let mut purchased = false;
+
+        for information in user_results {
+            if information.owned_packages.unwrap().contains(&info.packageid) {
+                purchased = true;
+            }
+        }
 
     for information in results {
         if information.package_visible {
             // Package visible, return data
             package_data = json!({
                 "price": format!("${}", information.price.to_string()),
-                // TODO: Implement Auth0 and vapas_users here
-                "purchased": false,
-                "available": true
+                "purchased": purchased,
+                "available": information.package_visible
             })
         } else {
             // Package not visible, don't return data
             package_data = json!({
-                "available": false,
+                "available": information.package_visible,
                 "error": "Package not visible... How did you get here?",
                 "recovery_url": "https://excuseme.wtf/"
             })
@@ -134,6 +182,7 @@ pub async fn purchase(pool: web::Data<DbPool>, info: web::Path<PackageID>) -> im
     // TODO: Implement Auth0, vapas_users, and Stripe here
     HttpResponse::Ok()
         .json(json!({
-            "success": 0
+            "status": 1,
+            "url": "https://excuseme.wtf"
         }))
 }

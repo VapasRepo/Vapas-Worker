@@ -8,14 +8,21 @@ extern crate serde_json;
 
 use std::{env, io};
 
-use actix_web::{App, HttpServer};
+use actix_web::{App, HttpServer, HttpRequest, Result};
 use dotenv::dotenv;
 
 use crate::services::database::establish_connection;
+use actix_files::NamedFile;
+use std::path::PathBuf;
 
 pub mod modules;
 pub mod services;
 pub mod structs;
+
+async fn static_files(req: HttpRequest) -> Result<NamedFile> {
+    let path: PathBuf = req.match_info().query("filename").parse().unwrap();
+    Ok(NamedFile::open(path)?)
+}
 
 #[actix_rt::main]
 async fn main() -> io::Result<()> {

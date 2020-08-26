@@ -14,7 +14,6 @@ use crate::structs::general::*;
 
 #[get("/sileodepiction/{packageid}")]
 pub async fn sileo_depiction(pool: web::Data<DbPool>, info: web::Path<PackageID>) -> impl Responder {
-    // TODO: Implement Native (Sileo/Installer) Depictions
     dotenv().ok();
 
     use crate::structs::schema::package_information::dsl::*;

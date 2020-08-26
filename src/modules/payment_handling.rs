@@ -131,6 +131,8 @@ pub async fn package_info(pool: web::Data<DbPool>, info: web::Path<PackageID>, p
 
     let conn = pool.get().unwrap();
 
+    println!("{}", post.token);
+
     let auth0_id = "auth0|5d3c133d96ba380cb390ee59".to_string();// Temporary hardcoded auth0 id
 
     let results = package_information

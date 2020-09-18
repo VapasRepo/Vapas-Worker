@@ -77,6 +77,15 @@ pub async fn sileo_depiction(pool: web::Data<DbPool>, info: web::Path<PackageID>
                     "useSpacing": true,
                     "class": "DepictionMarkdownView"
                 }, {
+                    "class": "DepictionSeparatorView"
+                }, {
+                    "title": "What's New",
+                    "class": "DepictionHeaderView"
+                }, {
+                    "markdown": package_changelog,
+                    "useSpacing": true,
+                    "class": "DepictionMarkdownView"
+                }, {
                     "title": "Known Issues",
                     "class": "DepictionHeaderView"
                 }, {
@@ -129,19 +138,6 @@ pub async fn sileo_depiction(pool: web::Data<DbPool>, info: web::Path<PackageID>
                     "cornerRadius": 0,
                     "alignment": 1,
                     "class": "DepictionImageView"
-                }],
-                "class": "DepictionStackView"
-            }, {
-                "tabname": "Changelog",
-                "views": [{
-                    "title": format!("Version {}", information.version),
-                    "useBoldText": true,
-                    "useBottomMargin": true,
-                    "class": "DepictionSubheaderView"
-                }, {
-                    "markdown": package_changelog,
-                    "useSpacing": false,
-                    "class": "DepictionMarkdownView"
                 }],
                 "class": "DepictionStackView"
             }],

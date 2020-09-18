@@ -34,8 +34,9 @@ pub struct Auth0CallbackQuery {
 #[derive(Deserialize)]
 pub struct Auth0CodeQuery {
     pub access_token: String,
-    pub expires_in: i32,
-    pub token_type: String
+    pub id_token: String,
+    pub token_type: String,
+    pub expires_in: i32
 }
 
 // Sileo package post request

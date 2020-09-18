@@ -66,8 +66,8 @@ pub async fn user_info() -> impl Responder {
     let user_info = json!({
         "items": ["gq.vapas.paidtestpackage"],
         "user": {
-            "name": "Skye Viau",
-            "email": "skye.viau@outlook.com"
+            "name": "Evie Viau",
+            "email": "evie.viau@gmail.com"
         }
     });
     HttpResponse::Ok()
@@ -77,7 +77,7 @@ pub async fn user_info() -> impl Responder {
 #[get("/payment/authenticate")]
 pub async fn authenticate(info: Query<AuthQuery>) -> impl Responder {
     HttpResponse::TemporaryRedirect()
-        .header(http::header::LOCATION, format!("https://{}/authorize?response_type=code&client_id={}&redirect_uri={}/payment/auth0callback&state={}",
+        .header(http::header::LOCATION, format!("https://{}/authorize?response_type=code&client_id={}&redirect_uri={}/payment/auth0callback&state={}&scope=openid%20profile%20email",
         env::var("auth0URL").unwrap(),
         env::var("auth0clientID").unwrap(),
         env::var("URL").unwrap(),
@@ -97,7 +97,7 @@ pub async fn auth0callback(info: Query<Auth0CallbackQuery>) -> impl Responder {
             "client_id": env::var("auth0clientID").unwrap(),
             "client_secret": env::var("auth0clientSecret").unwrap(),
             "code": &info.code,
-            "redirect_uri": "https://development.vapas.gq"
+            "redirect_uri": format!("{}", env::var("URL").unwrap())
         })).unwrap())
         .send()
         .await
@@ -107,10 +107,10 @@ pub async fn auth0callback(info: Query<Auth0CallbackQuery>) -> impl Responder {
         .unwrap();
     println!("{}", response);
     let response_json = serde_json::from_str::<Auth0CodeQuery>(&response).unwrap();
-    println!("{}", response_json.access_token);
+    println!("{}", response_json.id_token);
     HttpResponse::TemporaryRedirect()
         .header(http::header::LOCATION, format!("sileo://authentication_success?token={}&payment_secret={}",
-        format!("BEARER {}", response_json.access_token),
+        response_json.id_token,
         "jr38tgh9t832gew89gt3j8y4hjgmf92r1jt38gfhrq5jtwyhsgfekart0gh9fet8yhrgw89e3qw6h4gfn5ty5hgrfgh34ty5894g"))//TODO: Get a payment secret
         .finish()
 }

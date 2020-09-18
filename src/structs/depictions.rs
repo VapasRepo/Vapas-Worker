@@ -1,7 +1,7 @@
-use askama_actix::Template;
+use askama::Template;
 
 #[derive(Template)]
-#[template(path = "../../public/depiction_template.html")]
+#[template(path = "depiction.html")]
 struct WebDepiction<'a> {
     name: &'a str,
 }

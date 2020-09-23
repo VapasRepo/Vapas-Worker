@@ -53,6 +53,8 @@ async fn main() -> io::Result<()> {
             .service(modules::payment_handling::authenticate)
             // Payment deauth
             .service(modules::payment_handling::sign_out)
+            // Auth0 deauth callback
+            .service(modules::payment_handling::sign_out_redirect)
             // Auth0 callback
             .service(modules::payment_handling::auth0callback)
             // Payment package info

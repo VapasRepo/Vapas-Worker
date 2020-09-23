@@ -28,3 +28,6 @@ diesel = { version = "1.4.4", features = ["postgres", "r2d2", "chrono"]}
 chrono = "0.4"
 parking_lot = "0.10.2"
 reqwest = "0.10.6"
+jwt = "0.10.0"
+hmac = "0.9.0"
+sha2 = "0.9.1"

@@ -116,8 +116,17 @@ pub async fn auth0callback(info: Query<Auth0CallbackQuery>) -> impl Responder {
 }
 
 #[post("/payment/sign_out")]
-pub async fn sign_out() -> impl Responder {
-    // TODO: Implement Auth0 here
+pub async fn sign_out(info: web::Json<SileoUserInfoRequest>) -> impl Responder {
+    HttpResponse::TemporaryRedirect()
+        .header(http::header::LOCATION, format!("https://{}/v2/logout?client_id={}&returnTo={}",
+        env::var("auth0URL").unwrap(),
+        env::var("auth0clientID").unwrap(),
+        format!("{}/payment/sign_out_redirect", env::var("URL").unwrap())))
+        .finish()
+}
+
+#[get("/payment/sign_out_redirect")]
+pub async fn sign_out_redirect() -> impl Responder {
     HttpResponse::Ok()
         .json(json!({
             "success": true
